@@ -83,6 +83,13 @@ provider interfaces remain independently replaceable.
 with transcript, detected or requested language metadata, confidence, and optional
 metadata. It is responsible only for transcription. Invalid audio, empty input,
 unsupported language, and inference failures are represented as provider exceptions.
+The shared upload utility checks allowlisted `audio/wav`, `audio/mpeg`,
+`audio/flac`, `audio/ogg`, `audio/webm`, and `audio/mp4` MIME types against file
+signatures, enforces `MAX_UPLOAD_SIZE_BYTES` with bounded reads when passed the
+configured limit, and checks WAV duration when a duration limit is configured.
+Other accepted formats do not get duration checks without a decoder. Temporary
+STT files use generated names and MIME-derived extensions; client filenames are
+ignored and files are removed after inference.
 
 A real implementation can use the lazy `FasterWhisperSTTProvider`, which loads
 optional ML dependencies only when inference begins. Development and default

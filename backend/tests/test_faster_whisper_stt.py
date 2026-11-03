@@ -48,6 +48,39 @@ def test_adapter_returns_typed_result_without_loading_ml_package() -> None:
     assert result.metadata["provider"] == "faster-whisper"
 
 
+@pytest.mark.parametrize("fails", [False, True])
+def test_adapter_ignores_client_filename_and_cleans_temp_file(fails: bool) -> None:
+    temporary_paths: list[Path] = []
+
+    class RecordingModel:
+        def transcribe(self, audio_path: str, **kwargs):
+            del kwargs
+            path = Path(audio_path)
+            temporary_paths.append(path)
+            assert path.is_file()
+            assert path.suffix == ".wav"
+            if fails:
+                raise RuntimeError("inference failed")
+            return iter([FakeSegment("recognized")]), FakeInfo()
+
+    provider = FasterWhisperSTTProvider(model_loader=lambda *args, **kwargs: RecordingModel())
+    audio = AudioInput(
+        data=b"test audio",
+        content_type="audio/wav",
+        filename=Path("../../outside.mp3"),
+    )
+
+    if fails:
+        with pytest.raises(STTProviderError, match="transcription failed"):
+            provider.transcribe(audio)
+    else:
+        assert provider.transcribe(audio).transcript == "recognized"
+
+    assert len(temporary_paths) == 1
+    assert "outside" not in temporary_paths[0].name
+    assert not temporary_paths[0].exists()
+
+
 @pytest.mark.parametrize("audio", [b"", AudioInput(data=b"")])
 def test_adapter_rejects_empty_audio(audio) -> None:
     provider = FasterWhisperSTTProvider(model_loader=fake_loader)
