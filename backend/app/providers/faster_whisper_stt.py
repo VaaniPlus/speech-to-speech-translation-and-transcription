@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import math
-import tempfile
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -13,6 +12,7 @@ from app.providers.stt import (
     STTProviderError,
     STTResult,
 )
+from app.utils.audio import temporary_audio_file
 
 
 class FasterWhisperSTTProvider:
@@ -78,63 +78,55 @@ class FasterWhisperSTTProvider:
         if language not in (None, "en", "hi"):
             raise STTProviderError("STT language must be 'en', 'hi', or unspecified")
 
-        data = self._audio_bytes(audio)
-        suffix = ".wav"
-        if isinstance(audio, AudioInput) and isinstance(audio.filename, Path):
-            if audio.filename.suffix:
-                suffix = audio.filename.suffix
-
-        temporary_path: Path | None = None
+        self._audio_bytes(audio)
         try:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temporary:
-                temporary.write(data)
-                temporary_path = Path(temporary.name)
+            with temporary_audio_file(audio) as temporary_path:
+                model = self._load_model()
+                segments, info = model.transcribe(
+                    str(temporary_path),
+                    language=language,
+                    task="transcribe",
+                )
+                segment_list = list(segments)
+                transcript = " ".join(
+                    str(getattr(segment, "text", "")).strip()
+                    for segment in segment_list
+                ).strip()
+                if not transcript:
+                    raise STTProviderError(
+                        "The STT provider returned an empty transcript"
+                    )
 
-            model = self._load_model()
-            segments, info = model.transcribe(
-                str(temporary_path),
-                language=language,
-                task="transcribe",
-            )
-            segment_list = list(segments)
-            transcript = " ".join(
-                str(getattr(segment, "text", "")).strip()
-                for segment in segment_list
-            ).strip()
-            if not transcript:
-                raise STTProviderError("The STT provider returned an empty transcript")
+                log_probabilities = [
+                    float(segment.avg_logprob)
+                    for segment in segment_list
+                    if getattr(segment, "avg_logprob", None) is not None
+                ]
+                confidence = None
+                if log_probabilities:
+                    confidence = math.exp(
+                        sum(log_probabilities) / len(log_probabilities)
+                    )
+                    confidence = max(0.0, min(1.0, confidence))
 
-            log_probabilities = [
-                float(segment.avg_logprob)
-                for segment in segment_list
-                if getattr(segment, "avg_logprob", None) is not None
-            ]
-            confidence = None
-            if log_probabilities:
-                confidence = math.exp(sum(log_probabilities) / len(log_probabilities))
-                confidence = max(0.0, min(1.0, confidence))
+                detected_language = getattr(info, "language", language)
+                if detected_language not in ("en", "hi"):
+                    detected_language = language
 
-            detected_language = getattr(info, "language", language)
-            if detected_language not in ("en", "hi"):
-                detected_language = language
-
-            metadata: dict[str, object] = {
-                "provider": "faster-whisper",
-                "model_id": self.model_id,
-                "device": self.device,
-                "compute_type": self.compute_type,
-                "language_probability": getattr(info, "language_probability", None),
-            }
-            return STTResult(
-                transcript=transcript,
-                language=detected_language,
-                confidence=confidence,
-                metadata=metadata,
-            )
+                metadata: dict[str, object] = {
+                    "provider": "faster-whisper",
+                    "model_id": self.model_id,
+                    "device": self.device,
+                    "compute_type": self.compute_type,
+                    "language_probability": getattr(info, "language_probability", None),
+                }
+                return STTResult(
+                    transcript=transcript,
+                    language=detected_language,
+                    confidence=confidence,
+                    metadata=metadata,
+                )
         except STTProviderError:
             raise
         except Exception as error:
             raise STTProviderError("Audio transcription failed") from error
-        finally:
-            if temporary_path is not None:
-                temporary_path.unlink(missing_ok=True)
