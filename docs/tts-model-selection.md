@@ -102,8 +102,10 @@ is not a Windows/NVIDIA solution.
 
 ## Decision boundaries
 
-AMTT-21 verifies the option and records the benchmark protocol. AMTT-22 will
-implement the provider adapter behind `TTSProvider`, add empty/unsupported
-language/error handling and fake-provider tests, and keep Kokoro initialization
-lazy and outside the async event loop. A future adapter may use CPU first; any
-CUDA implementation must require actual Windows/RTX smoke-test evidence.
+AMTT-21 verified the option and recorded the benchmark protocol. AMTT-22
+implements `KokoroTTSProvider` behind `TTSProvider`: English uses pipeline
+language `a` and voice `af_heart`, Hindi uses `h` and `hf_alpha`, and output is
+mono 24 kHz PCM WAV. Model pipelines load lazily on the first synthesis request
+and are reused per language; normal tests inject a fake pipeline and do not
+download weights. The adapter defaults to CPU; CUDA requires separate Windows
+smoke-test evidence before it is enabled.
