@@ -86,3 +86,36 @@ with a safe message and the `translation` stage.
   "stage": "translation"
 }
 ```
+
+## Speech-to-text
+
+`POST /api/speech-to-text` accepts `multipart/form-data` with a required
+`file` part and an optional `language` field (`en` or `hi`). Omit `language`
+for automatic language detection. The endpoint transcribes English or Hindi
+audio and returns the transcript, requested and detected language codes,
+optional provider confidence, and a success status.
+
+```powershell
+curl.exe -X POST http://127.0.0.1:8000/api/speech-to-text `
+  -F "file=@speech.wav;type=audio/wav" `
+  -F "language=en"
+```
+
+Successful response (`200 OK`):
+
+```json
+{
+  "transcript": "Hello there.",
+  "requested_language": "en",
+  "detected_language": "en",
+  "confidence": 0.94,
+  "status": "success"
+}
+```
+
+The configured maximum upload size is enforced. Empty or malformed audio
+returns HTTP 422, unsupported media returns HTTP 415, and oversized audio
+returns HTTP 413. These errors use the stable `ErrorResponse` shape with the
+`validation` stage. A missing STT provider returns HTTP 503; STT failures return
+HTTP 502 with the `stt` stage and a client-safe message. Client filenames are
+not used as filesystem paths.

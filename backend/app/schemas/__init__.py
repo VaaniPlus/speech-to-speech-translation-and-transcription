@@ -1,5 +1,6 @@
 """Typed request and response schemas."""
 
+from app.schemas.speech import SpeechToTextResponse
 from app.schemas.translation import (
     ErrorResponse,
     ErrorStage,
@@ -15,6 +16,7 @@ __all__ = [
     "ErrorStage",
     "LanguageCode",
     "ProcessingStatus",
+    "SpeechToTextResponse",
     "TranslationDirection",
     "TranslationRequest",
     "TranslationResponse",

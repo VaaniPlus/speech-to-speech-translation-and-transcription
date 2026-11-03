@@ -21,7 +21,10 @@ from app.providers.kokoro_tts import KokoroTTSProvider
 from app.providers.stt import STTProvider
 from app.providers.translation import TranslationProvider
 from app.providers.tts import TTSProvider
+from app.schemas.translation import ErrorResponse
+from app.services.speech_to_text_service import SpeechToTextServiceError
 from app.services.translation_service import TranslationServiceError
+from app.utils.audio import AudioInputError
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +55,7 @@ def create_app(
         lifespan=lifespan,
     )
     if app_settings.provider_mode == "mock":
-        application.state.stt_provider = FakeSTTProvider()
+        application.state.stt_provider = stt_provider or FakeSTTProvider()
         application.state.translation_provider = (
             translation_provider or FakeTranslationProvider()
         )
@@ -91,6 +94,34 @@ def create_app(
                 "message": error.message,
                 "stage": "translation",
             },
+        )
+
+    @application.exception_handler(AudioInputError)
+    async def handle_audio_input_error(
+        request: Request, error: AudioInputError
+    ) -> JSONResponse:
+        del request
+        return JSONResponse(
+            status_code=error.status_code,
+            content=ErrorResponse(
+                code=error.code,
+                message=str(error),
+                stage="validation",
+            ).model_dump(),
+        )
+
+    @application.exception_handler(SpeechToTextServiceError)
+    async def handle_speech_to_text_error(
+        request: Request, error: SpeechToTextServiceError
+    ) -> JSONResponse:
+        del request
+        return JSONResponse(
+            status_code=error.status_code,
+            content=ErrorResponse(
+                code=error.code,
+                message=error.message,
+                stage="stt",
+            ).model_dump(),
         )
 
     application.include_router(router, prefix="/api")
