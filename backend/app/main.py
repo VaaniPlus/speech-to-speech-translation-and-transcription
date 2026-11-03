@@ -17,8 +17,10 @@ from app.providers.fake import (
 )
 from app.providers.faster_whisper_stt import FasterWhisperSTTProvider
 from app.providers.indictrans2_translation import IndicTrans2TranslationProvider
+from app.providers.kokoro_tts import KokoroTTSProvider
 from app.providers.stt import STTProvider
 from app.providers.translation import TranslationProvider
+from app.providers.tts import TTSProvider
 from app.services.translation_service import TranslationServiceError
 
 logger = logging.getLogger(__name__)
@@ -28,6 +30,7 @@ def create_app(
     settings: Settings | None = None,
     translation_provider: TranslationProvider | None = None,
     stt_provider: STTProvider | None = None,
+    tts_provider: TTSProvider | None = None,
 ) -> FastAPI:
     """Create the API application without loading any speech models."""
     app_settings = settings or get_settings()
@@ -53,7 +56,7 @@ def create_app(
         application.state.translation_provider = (
             translation_provider or FakeTranslationProvider()
         )
-        application.state.tts_provider = FakeTTSProvider()
+        application.state.tts_provider = tts_provider or FakeTTSProvider()
     else:
         application.state.stt_provider = stt_provider or FasterWhisperSTTProvider(
             model_id=app_settings.stt_model_id,
@@ -70,7 +73,10 @@ def create_app(
                 cache_dir=app_settings.model_cache_dir,
             )
         )
-        application.state.tts_provider = None
+        application.state.tts_provider = tts_provider or KokoroTTSProvider(
+            en_model_id=app_settings.tts_en_model_id,
+            hi_model_id=app_settings.tts_hi_model_id,
+        )
 
     @application.exception_handler(TranslationServiceError)
     async def handle_translation_error(

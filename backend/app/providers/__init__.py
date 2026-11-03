@@ -8,6 +8,7 @@ from app.providers.stt import (
     STTResult,
 )
 from app.providers.indictrans2_translation import IndicTrans2TranslationProvider
+from app.providers.kokoro_tts import KokoroTTSProvider
 from app.providers.translation import (
     TranslationProvider,
     TranslationProviderError,
@@ -24,6 +25,7 @@ __all__ = [
     "AudioInput",
     "FasterWhisperSTTProvider",
     "IndicTrans2TranslationProvider",
+    "KokoroTTSProvider",
     "ManagedAudioArtifact",
     "STTProvider",
     "STTProviderError",
