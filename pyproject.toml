@@ -8,6 +8,7 @@ dependencies = [
   "uvicorn[standard]==0.34.2",
   "pydantic==2.11.4",
   "pydantic-settings==2.9.1",
+  "python-multipart==0.0.20",
 ]
 
 [project.optional-dependencies]
