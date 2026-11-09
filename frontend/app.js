@@ -21,6 +21,10 @@ const recordingStatus = document.querySelector("#recording-status");
 const recordingIndicator = document.querySelector("#recording-indicator");
 const speechSubmitButton = document.querySelector("#speech-submit-button");
 const speechSubmitLabel = document.querySelector("#speech-submit-label");
+const audioStatus = document.querySelector("#audio-status");
+const audioToggleButton = document.querySelector("#audio-toggle-button");
+const audioReplayButton = document.querySelector("#audio-replay-button");
+const translatedAudio = document.querySelector("#translated-audio");
 
 const directions = {
   "en-to-hi": {
@@ -41,6 +45,15 @@ const directions = {
   },
 };
 
+const supportedAudioTypes = new Set([
+  "audio/flac",
+  "audio/mp4",
+  "audio/mpeg",
+  "audio/ogg",
+  "audio/wav",
+  "audio/webm",
+]);
+
 let activeRequestId = 0;
 let activeController = null;
 let speechRequestId = 0;
@@ -54,6 +67,7 @@ let recordingSessionId = 0;
 let recordingActive = false;
 let recordingFinalizing = false;
 let requestingMicrophone = false;
+let translatedAudioUrl = null;
 
 function setRecordingStatus(message, state = "info") {
   recordingStatus.textContent = message;
@@ -270,6 +284,91 @@ function setStatus(message, state = "info") {
   workspaceStatus.dataset.state = state;
 }
 
+function updateAudioControls() {
+  const hasAudio = translatedAudioUrl !== null;
+  const isPlaying = hasAudio && !translatedAudio.paused && !translatedAudio.ended;
+  audioToggleButton.disabled = !hasAudio;
+  audioToggleButton.setAttribute(
+    "aria-label",
+    isPlaying ? "Pause translated audio" : "Play translated audio",
+  );
+  audioToggleButton.title = isPlaying ? "Pause translated audio" : "Play translated audio";
+  audioToggleButton.querySelector("span").textContent = isPlaying ? "Ⅱ" : "▶";
+  audioReplayButton.disabled = !hasAudio;
+  audioReplayButton.title = hasAudio
+    ? "Replay translated audio"
+    : "No translated audio is available";
+}
+
+function releaseTranslatedAudio() {
+  const previousUrl = translatedAudioUrl;
+  translatedAudioUrl = null;
+  translatedAudio.pause();
+  translatedAudio.removeAttribute("src");
+  translatedAudio.load();
+  if (previousUrl) URL.revokeObjectURL(previousUrl);
+  audioStatus.textContent = "Generated audio will appear here";
+  updateAudioControls();
+}
+
+function setTranslatedAudio(audioBlob) {
+  releaseTranslatedAudio();
+  translatedAudioUrl = URL.createObjectURL(audioBlob);
+  translatedAudio.src = translatedAudioUrl;
+  translatedAudio.load();
+  audioStatus.textContent = "Generated audio is ready. Select Play to listen.";
+  updateAudioControls();
+}
+
+function playbackErrorMessage(error) {
+  if (error?.name === "NotAllowedError") {
+    return "The browser blocked audio playback. Select Play again to retry.";
+  }
+  if (error?.name === "NotSupportedError") {
+    return "This browser cannot play the generated audio format. Try another browser or regenerate it.";
+  }
+  return "Translated audio playback failed. Try again or regenerate the translation.";
+}
+
+function reportAudioElementError() {
+  if (!translatedAudioUrl || !translatedAudio.error) return;
+  const messages = {
+    2: "Generated audio could not be loaded. Check your connection and try the translation again.",
+    3: "Generated audio could not be decoded. Try another browser or regenerate the translation.",
+    4: "This browser cannot play the generated audio format. Try another browser or regenerate it.",
+  };
+  const message =
+    messages[translatedAudio.error?.code] ||
+    "Generated audio could not be played. Try another browser or regenerate the translation.";
+  audioStatus.textContent = message;
+  setStatus(message, "error");
+  updateAudioControls();
+}
+
+async function playTranslatedAudio(restart = false) {
+  const audioUrl = translatedAudioUrl;
+  if (!audioUrl) return;
+  try {
+    if (restart) translatedAudio.currentTime = 0;
+    await translatedAudio.play();
+  } catch (error) {
+    if (audioUrl !== translatedAudioUrl) return;
+    const message = playbackErrorMessage(error);
+    audioStatus.textContent = message;
+    setStatus(message, "error");
+    updateAudioControls();
+  }
+}
+
+function toggleTranslatedAudio() {
+  if (!translatedAudioUrl) return;
+  if (!translatedAudio.paused && !translatedAudio.ended) {
+    translatedAudio.pause();
+    return;
+  }
+  playTranslatedAudio();
+}
+
 function getApiUrl(endpoint = "translate") {
   if (window.location.protocol === "http:" || window.location.protocol === "https:") {
     const isLocalHost = ["localhost", "127.0.0.1"].includes(window.location.hostname);
@@ -282,6 +381,7 @@ function getApiUrl(endpoint = "translate") {
 }
 
 function clearTranslationOutput() {
+  releaseTranslatedAudio();
   placeholderContent.hidden = false;
   translationOutput.hidden = true;
   sourceOutput.textContent = "";
@@ -293,6 +393,7 @@ function cancelSpeechRequest() {
   if (speechController) speechController.abort();
   speechController = null;
   speechProcessing = false;
+  releaseTranslatedAudio();
   speechSubmitButton.classList.remove("is-loading");
   speechSubmitLabel.textContent = "Translate recording";
   updateRecordingControls();
@@ -340,6 +441,7 @@ async function translateRecording() {
   const audio = capturedAudio;
   const direction = directionSelect.value;
   const requestId = ++speechRequestId;
+  releaseTranslatedAudio();
   const controller = new AbortController();
   speechController = controller;
   speechProcessing = true;
@@ -354,6 +456,7 @@ async function translateRecording() {
   setStatus("Uploading recording and processing speech…", "loading");
 
   const formData = new FormData();
+  let receivedMetadata = false;
   const mediaType = (audio.type || "audio/webm").split(";", 1)[0].toLowerCase();
   const extensions = {
     "audio/flac": "flac",
@@ -386,13 +489,32 @@ async function translateRecording() {
     sourceOutput.lang = direction === "hi-to-en" ? "hi" : "en";
     translatedOutput.textContent = translation;
     translatedOutput.lang = direction === "en-to-hi" ? "hi" : "en";
+    receivedMetadata = true;
+
+    const contentType = response.headers.get("Content-Type")?.split(";", 1)[0].trim().toLowerCase();
+    if (!supportedAudioTypes.has(contentType)) {
+      throw new Error("The speech service returned an unsupported audio format. Please retry.");
+    }
+    const audioBlob = await response.blob();
+    if (requestId !== speechRequestId) return;
+    if (!audioBlob.size) {
+      throw new Error("The speech service returned an empty audio file. Please retry.");
+    }
+
+    setTranslatedAudio(new Blob([audioBlob], { type: contentType }));
+    audioStatus.textContent = "Generated audio is ready. Select Play to listen.";
     setStatus("Speech translation complete. Source transcript and translation are shown separately.", "success");
   } catch (error) {
     if ((error instanceof Error && error.name === "AbortError") || requestId !== speechRequestId) {
       return;
     }
-    sourceOutput.textContent = "Transcript unavailable";
-    translatedOutput.textContent = "Translation unavailable";
+    if (!receivedMetadata) {
+      sourceOutput.textContent = "Transcript unavailable";
+      translatedOutput.textContent = "Translation unavailable";
+    }
+    releaseTranslatedAudio();
+    audioStatus.textContent =
+      error instanceof Error ? error.message : "Translated audio could not be generated. Please retry.";
     setStatus(
       error instanceof Error
         ? `${error.message} Your recording is available to retry.`
@@ -488,8 +610,27 @@ translateButton.addEventListener("click", translateText);
 speechSubmitButton.addEventListener("click", translateRecording);
 recordButton.addEventListener("click", startRecording);
 stopButton.addEventListener("click", stopRecording);
+audioToggleButton.addEventListener("click", toggleTranslatedAudio);
+audioReplayButton.addEventListener("click", () => playTranslatedAudio(true));
+translatedAudio.addEventListener("play", () => {
+  if (!translatedAudioUrl || translatedAudio.paused || translatedAudio.ended) return;
+  audioStatus.textContent = "Playing translated audio.";
+  updateAudioControls();
+});
+translatedAudio.addEventListener("pause", () => {
+  if (!translatedAudioUrl || translatedAudio.ended || !translatedAudio.paused) return;
+  audioStatus.textContent = "Playback paused. Select Play to continue.";
+  updateAudioControls();
+});
+translatedAudio.addEventListener("ended", () => {
+  if (!translatedAudioUrl || !translatedAudio.ended) return;
+  audioStatus.textContent = "Playback finished. Select Replay to listen again.";
+  updateAudioControls();
+});
+translatedAudio.addEventListener("error", reportAudioElementError);
 window.addEventListener("pagehide", () => {
   const wasCapturing = recordingActive || requestingMicrophone;
+  cancelSpeechRequest();
   resetRecording();
   if (wasCapturing) {
     const message = "Recording stopped when this page was left. Select Start to record again.";
@@ -500,7 +641,13 @@ window.addEventListener("pagehide", () => {
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) return;
   const wasCapturing = recordingActive || requestingMicrophone;
+  const wasProcessing = speechProcessing;
+  cancelSpeechRequest();
   resetRecording();
+  if (wasProcessing) {
+    clearTranslationOutput();
+    setStatus("Speech processing stopped because this page was hidden. Record again to retry.", "info");
+  }
   if (wasCapturing) {
     const message = "Recording stopped when this page was hidden. Select Start to record again.";
     setRecordingStatus(message);
@@ -510,3 +657,4 @@ document.addEventListener("visibilitychange", () => {
 
 updateDirection();
 updateRecordingControls();
+updateAudioControls();

@@ -53,11 +53,17 @@ real model weights is a separate manual verification and must be labeled as such
   `POST /api/speech-translate` request sends `en-to-hi`.
 - [ ] Verify progress, English transcript, Hindi
   translation, and playable Hindi audio.
+- [ ] Use Play, Pause, and Replay and verify each translated-audio control
+  works after a successful response.
 - [ ] Grant/reset permission and record a short Hindi utterance.
 - [ ] Stop the recording, select **Translate recording**, and verify the
   `POST /api/speech-translate` request sends `hi-to-en`.
 - [ ] Verify progress, Hindi transcript, English
   translation, and playable English audio.
+- [ ] Replace a successful audio result with a new recording/result and verify
+  playback stops and the previous audio resource is released.
+- [ ] Simulate an unsupported or failed audio response and verify a useful
+  playback error is displayed.
 - [ ] Deny microphone permission and verify clear recovery guidance.
 - [ ] Reset while audio is active and verify playback stops and visible state
   clears.

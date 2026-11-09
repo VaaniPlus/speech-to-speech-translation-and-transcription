@@ -11,5 +11,9 @@ recording** to send the audio and current direction to the local
 errors are shown in the workspace; the captured clip remains available to
 retry. The source transcript and translated text are displayed in separate
 result blocks. Audio is sent only after this explicit action and is not stored
-by the frontend. Capture is cleared when the direction changes or the page is
-hidden/left. Translated-audio playback is a separate feature.
+by the frontend. The generated audio response is played from a browser object
+URL using the response's declared audio content type. The result panel provides
+play/pause and replay controls, and reports unsupported or failed playback.
+Audio URLs are revoked when a new translation replaces the result, the
+direction changes, or the page is hidden/left. Capture is cleared when the
+direction changes or the page is hidden/left.
