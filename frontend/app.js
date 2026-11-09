@@ -25,6 +25,7 @@ const audioStatus = document.querySelector("#audio-status");
 const audioToggleButton = document.querySelector("#audio-toggle-button");
 const audioReplayButton = document.querySelector("#audio-replay-button");
 const translatedAudio = document.querySelector("#translated-audio");
+const resetButton = document.querySelector("#reset-button");
 
 const directions = {
   "en-to-hi": {
@@ -98,7 +99,11 @@ function updateRecordingControls() {
   stopButton.title = recordingActive ? "Stop microphone recording" : "No recording is in progress";
   recordingIndicator.classList.toggle("is-recording", recordingActive);
   speechSubmitButton.disabled =
-    !(capturedAudio instanceof Blob) || speechProcessing || recordingActive || recordingFinalizing;
+    !(capturedAudio instanceof Blob) ||
+    speechProcessing ||
+    activeController !== null ||
+    recordingActive ||
+    recordingFinalizing;
 }
 
 function microphoneErrorMessage(error) {
@@ -276,7 +281,8 @@ function updateInput() {
   translateButton.disabled =
     sourceText.value.trim().length === 0 ||
     translateButton.classList.contains("is-loading") ||
-    speechProcessing;
+    speechProcessing ||
+    activeController !== null;
 }
 
 function setStatus(message, state = "info") {
@@ -388,6 +394,17 @@ function clearTranslationOutput() {
   translatedOutput.textContent = "";
 }
 
+function resetWorkspace() {
+  cancelTextRequest();
+  cancelSpeechRequest();
+  resetRecording();
+  sourceText.value = "";
+  updateInput();
+  clearTranslationOutput();
+  setRecordingStatus("Choose Start to allow microphone access");
+  setStatus("Workspace reset. Ready to translate.", "info");
+}
+
 function cancelSpeechRequest() {
   speechRequestId += 1;
   if (speechController) speechController.abort();
@@ -407,6 +424,7 @@ function cancelTextRequest() {
   translateButton.classList.remove("is-loading");
   translateButtonLabel.textContent = "Translate text";
   updateInput();
+  updateRecordingControls();
 }
 
 function decodeMetadataHeader(response, name) {
@@ -431,12 +449,11 @@ async function getApiError(response) {
 }
 
 async function translateRecording() {
-  if (!(capturedAudio instanceof Blob) || speechProcessing) {
+  if (speechProcessing || activeController) return;
+  if (!(capturedAudio instanceof Blob)) {
     setStatus("Record audio and stop the recording before submitting it.", "error");
     return;
   }
-
-  cancelTextRequest();
 
   const audio = capturedAudio;
   const direction = directionSelect.value;
@@ -534,6 +551,7 @@ async function translateRecording() {
 }
 
 async function translateText() {
+  if (activeController || speechProcessing) return;
   const source = sourceText.value.trim();
   if (!source) {
     setStatus("Enter text before translating.", "error");
@@ -541,7 +559,6 @@ async function translateText() {
   }
 
   cancelSpeechRequest();
-  if (activeController) activeController.abort();
 
   const requestId = ++activeRequestId;
   const controller = new AbortController();
@@ -549,6 +566,7 @@ async function translateText() {
   translateButton.classList.add("is-loading");
   translateButton.disabled = true;
   translateButtonLabel.textContent = "Translating…";
+  updateRecordingControls();
   placeholderContent.hidden = true;
   translationOutput.hidden = false;
   sourceOutput.textContent = source;
@@ -584,6 +602,7 @@ async function translateText() {
       translateButtonLabel.textContent = "Translate text";
       activeController = null;
       updateInput();
+      updateRecordingControls();
     }
   }
 }
@@ -608,6 +627,7 @@ sourceText.addEventListener("input", () => {
 });
 translateButton.addEventListener("click", translateText);
 speechSubmitButton.addEventListener("click", translateRecording);
+resetButton.addEventListener("click", resetWorkspace);
 recordButton.addEventListener("click", startRecording);
 stopButton.addEventListener("click", stopRecording);
 audioToggleButton.addEventListener("click", toggleTranslatedAudio);
@@ -630,6 +650,7 @@ translatedAudio.addEventListener("ended", () => {
 translatedAudio.addEventListener("error", reportAudioElementError);
 window.addEventListener("pagehide", () => {
   const wasCapturing = recordingActive || requestingMicrophone;
+  cancelTextRequest();
   cancelSpeechRequest();
   resetRecording();
   if (wasCapturing) {
@@ -641,12 +662,13 @@ window.addEventListener("pagehide", () => {
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) return;
   const wasCapturing = recordingActive || requestingMicrophone;
-  const wasProcessing = speechProcessing;
+  const wasProcessing = speechProcessing || activeController !== null;
+  cancelTextRequest();
   cancelSpeechRequest();
   resetRecording();
   if (wasProcessing) {
     clearTranslationOutput();
-    setStatus("Speech processing stopped because this page was hidden. Record again to retry.", "info");
+    setStatus("Processing stopped because this page was hidden. Submit again to retry.", "info");
   }
   if (wasCapturing) {
     const message = "Recording stopped when this page was hidden. Select Start to record again.";

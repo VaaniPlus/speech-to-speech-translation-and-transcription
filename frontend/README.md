@@ -16,4 +16,9 @@ URL using the response's declared audio content type. The result panel provides
 play/pause and replay controls, and reports unsupported or failed playback.
 Audio URLs are revoked when a new translation replaces the result, the
 direction changes, or the page is hidden/left. Capture is cleared when the
-direction changes or the page is hidden/left.
+direction changes or the page is hidden/left. Select **Reset** to cancel an
+active request, clear the typed text, recording, transcript, translation, and
+errors, and stop audio playback. Submitting while another request is active is
+guarded against duplicates. Fetch requests are aborted where the browser's
+`AbortController` supports it; request IDs also prevent late responses from
+replacing newer or reset results.

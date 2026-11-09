@@ -97,8 +97,9 @@ shown in the browser. Microphone capture starts only after selecting Start and
 granting browser permission. After stopping, select **Translate recording**
 to send the captured audio and selected direction to the local speech
 translation API. The source transcript and translated text are shown
-separately; translated-audio playback is not yet implemented. Use HTTPS or
-localhost for microphone access.
+separately, and the generated target-language audio can be played from the
+result panel. Use **Reset** to clear the current input and result or cancel
+in-flight processing. Use HTTPS or localhost for microphone access.
 
 ### Run tests
 
