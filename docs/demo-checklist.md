@@ -39,6 +39,10 @@ must be labeled as such.
   old request cannot replace the new direction or leave the button stuck loading.
 - [ ] Click rapidly while a request is pending and verify the loading state remains
   stable and only the newest result is displayed.
+- [ ] Submit repeatedly while the request is active and verify the request is
+  guarded against duplicate submissions.
+- [ ] Select **Reset** during a pending text request and verify its late response
+  cannot restore the cleared result.
 - [ ] Stop the backend or configure a provider failure, then repeat the request.
   Verify the safe error message appears without a traceback and the button resets.
 - [ ] Submit an invalid direction through the API and verify a useful 4xx response.
@@ -67,6 +71,9 @@ real model weights is a separate manual verification and must be labeled as such
 - [ ] Deny microphone permission and verify clear recovery guidance.
 - [ ] Reset while audio is active and verify playback stops and visible state
   clears.
+- [ ] Reset while speech processing is pending and verify the recording,
+  transcript, translation, errors, and late response are cleared.
+- [ ] Verify a second speech submission cannot start while the first is active.
 - [ ] Retry after a recoverable failure and verify stale results are not
   retained.
 

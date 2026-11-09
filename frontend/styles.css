@@ -242,6 +242,23 @@ h1 span {
   margin-bottom: 21px;
 }
 
+.result-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reset-button {
+  min-height: 31px;
+  padding: 0 10px;
+  border: 1px solid #dfe6df;
+  border-radius: 7px;
+  color: var(--green);
+  background: #fff;
+  font-size: 10px;
+  font-weight: 650;
+}
+
 .panel-kicker {
   color: #9aa39c;
   font-size: 9px;
@@ -722,6 +739,14 @@ textarea::placeholder {
 
   .result-placeholder {
     min-height: 190px;
+  }
+
+  .result-actions {
+    gap: 6px;
+  }
+
+  .reset-button {
+    padding: 0 8px;
   }
 
   .workspace-footnote {
