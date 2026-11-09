@@ -49,10 +49,14 @@ real model weights is a separate manual verification and must be labeled as such
 ## Speech pipeline
 
 - [ ] Grant microphone permission and record a short English utterance.
-- [ ] Stop the recording and verify progress, English transcript, Hindi
+- [ ] Stop the recording, select **Translate recording**, and verify the
+  `POST /api/speech-translate` request sends `en-to-hi`.
+- [ ] Verify progress, English transcript, Hindi
   translation, and playable Hindi audio.
 - [ ] Grant/reset permission and record a short Hindi utterance.
-- [ ] Stop the recording and verify progress, Hindi transcript, English
+- [ ] Stop the recording, select **Translate recording**, and verify the
+  `POST /api/speech-translate` request sends `hi-to-en`.
+- [ ] Verify progress, Hindi transcript, English
   translation, and playable English audio.
 - [ ] Deny microphone permission and verify clear recovery guidance.
 - [ ] Reset while audio is active and verify playback stops and visible state
