@@ -15,6 +15,10 @@ const sourceOutput = document.querySelector("#source-output");
 const translatedOutput = document.querySelector("#translated-output");
 const workspaceStatus = document.querySelector("#workspace-status");
 const workspaceStatusText = document.querySelector("#workspace-status-text");
+const recordButton = document.querySelector("#record-button");
+const stopButton = document.querySelector("#stop-button");
+const recordingStatus = document.querySelector("#recording-status");
+const recordingIndicator = document.querySelector("#recording-indicator");
 
 const directions = {
   "en-to-hi": {
@@ -37,6 +41,200 @@ const directions = {
 
 let activeRequestId = 0;
 let activeController = null;
+let mediaStream = null;
+let mediaRecorder = null;
+let recordingChunks = [];
+let capturedAudio = null;
+let recordingSessionId = 0;
+let recordingActive = false;
+let recordingFinalizing = false;
+let requestingMicrophone = false;
+
+function setRecordingStatus(message, state = "info") {
+  recordingStatus.textContent = message;
+  recordingStatus.dataset.state = state;
+}
+
+function stopMediaTracks(stream) {
+  if (!stream) return;
+  for (const track of stream.getTracks()) {
+    track.stop();
+  }
+}
+
+function stopMediaRecorder(recorder) {
+  if (!recorder || recorder.state === "inactive") return true;
+  try {
+    recorder.stop();
+    return true;
+  } catch (error) {
+    console.warn("The microphone recorder could not be stopped cleanly.", error);
+    return false;
+  }
+}
+
+function updateRecordingControls() {
+  recordButton.disabled = recordingActive || recordingFinalizing || requestingMicrophone;
+  stopButton.disabled = !recordingActive;
+  stopButton.title = recordingActive ? "Stop microphone recording" : "No recording is in progress";
+  recordingIndicator.classList.toggle("is-recording", recordingActive);
+}
+
+function microphoneErrorMessage(error) {
+  if (error?.name === "NotAllowedError" || error?.name === "SecurityError") {
+    return "Microphone access was blocked. Allow microphone access for this site in your browser settings, then try again.";
+  }
+  if (error?.name === "NotFoundError" || error?.name === "DevicesNotFoundError") {
+    return "No microphone was found. Connect a microphone and try again.";
+  }
+  if (error?.name === "NotReadableError" || error?.name === "TrackStartError") {
+    return "The microphone is unavailable. Close other apps using it and try again.";
+  }
+  return "Microphone access could not start. Check your browser and device permissions, then try again.";
+}
+
+function releaseRecordingResources() {
+  const stream = mediaStream;
+  mediaStream = null;
+  stopMediaTracks(stream);
+}
+
+function resetRecording() {
+  recordingSessionId += 1;
+  requestingMicrophone = false;
+  recordingActive = false;
+  recordingFinalizing = false;
+  recordingChunks = [];
+  capturedAudio = null;
+
+  const recorder = mediaRecorder;
+  mediaRecorder = null;
+  stopMediaRecorder(recorder);
+  releaseRecordingResources();
+  updateRecordingControls();
+}
+
+async function startRecording() {
+  if (recordingActive || requestingMicrophone) return;
+
+  if (!navigator.mediaDevices?.getUserMedia || typeof window.MediaRecorder !== "function") {
+    setRecordingStatus(
+      "Microphone recording needs a supported browser and a secure page (HTTPS or localhost).",
+      "error",
+    );
+    setStatus("Open this page over HTTPS or localhost in a browser that supports audio recording.", "error");
+    return;
+  }
+
+  const sessionId = ++recordingSessionId;
+  requestingMicrophone = true;
+  capturedAudio = null;
+  setRecordingStatus("Waiting for microphone permission…", "loading");
+  updateRecordingControls();
+
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (error) {
+    if (sessionId !== recordingSessionId) return;
+    requestingMicrophone = false;
+    updateRecordingControls();
+    const message = microphoneErrorMessage(error);
+    setRecordingStatus(message, "error");
+    setStatus(message, "error");
+    return;
+  }
+
+  if (sessionId !== recordingSessionId) {
+    stopMediaTracks(stream);
+    return;
+  }
+  if (document.hidden) {
+    stopMediaTracks(stream);
+    requestingMicrophone = false;
+    updateRecordingControls();
+    const message = "Recording could not start while this page was hidden. Return here and select Start.";
+    setRecordingStatus(message);
+    setStatus(message, "info");
+    return;
+  }
+
+  try {
+    const recorder = new window.MediaRecorder(stream);
+    mediaStream = stream;
+    mediaRecorder = recorder;
+    recordingChunks = [];
+    recorder.addEventListener("dataavailable", (event) => {
+      if (event.data?.size) recordingChunks.push(event.data);
+    });
+    recorder.addEventListener("error", () => {
+      if (sessionId !== recordingSessionId) return;
+      resetRecording();
+      const message = "Recording stopped unexpectedly. Check microphone access and try again.";
+      setRecordingStatus(message, "error");
+      setStatus(message, "error");
+    });
+    recorder.addEventListener("stop", () => {
+      if (sessionId !== recordingSessionId) return;
+      recordingActive = false;
+      recordingFinalizing = false;
+      mediaRecorder = null;
+      releaseRecordingResources();
+      recordingChunks = recordingChunks.filter((chunk) => chunk.size > 0);
+      capturedAudio = new Blob(recordingChunks, {
+        type: recorder.mimeType || recordingChunks[0]?.type || "audio/webm",
+      });
+      recordingChunks = [];
+      updateRecordingControls();
+
+      if (!capturedAudio.size) {
+        capturedAudio = null;
+        const message = "No audio was captured. Check your microphone and try again.";
+        setRecordingStatus(message, "error");
+        setStatus(message, "error");
+        return;
+      }
+
+      setRecordingStatus("Recording ready. Your audio stays in this browser.", "success");
+      setStatus("Recording ready. You can start another recording when needed.", "success");
+    });
+    recorder.start();
+    requestingMicrophone = false;
+    recordingActive = true;
+    updateRecordingControls();
+    setRecordingStatus("Recording… Select Stop when you’re finished.", "recording");
+    setStatus("Microphone recording is active.", "recording");
+  } catch (error) {
+    if (sessionId === recordingSessionId) {
+      mediaStream = stream;
+      resetRecording();
+      const message = microphoneErrorMessage(error);
+      setRecordingStatus(message, "error");
+      setStatus(message, "error");
+    } else {
+      stopMediaTracks(stream);
+    }
+  }
+}
+
+function stopRecording() {
+  if (!mediaRecorder || !recordingActive) return;
+  const recorder = mediaRecorder;
+  recordingActive = false;
+  recordingFinalizing = true;
+  updateRecordingControls();
+  setRecordingStatus("Finishing recording…", "loading");
+  setStatus("Finishing microphone recording…", "loading");
+  if (!stopMediaRecorder(recorder)) {
+    mediaRecorder = null;
+    resetRecording();
+    const message = "Recording could not be finalized. Check microphone access and try again.";
+    setRecordingStatus(message, "error");
+    setStatus(message, "error");
+    return;
+  }
+  releaseRecordingResources();
+}
 
 function updateDirection() {
   const direction = directions[directionSelect.value];
@@ -121,6 +319,7 @@ async function translateText() {
 }
 
 directionSelect.addEventListener("change", () => {
+  resetRecording();
   activeRequestId += 1;
   if (activeController) activeController.abort();
   activeController = null;
@@ -130,6 +329,7 @@ directionSelect.addEventListener("change", () => {
   placeholderContent.hidden = false;
   translationOutput.hidden = true;
   translatedOutput.textContent = "";
+  setRecordingStatus("Choose Start to allow microphone access");
   setStatus("Direction changed. Ready to translate.", "info");
 });
 sourceText.addEventListener("input", () => {
@@ -139,5 +339,27 @@ sourceText.addEventListener("input", () => {
   }
 });
 translateButton.addEventListener("click", translateText);
+recordButton.addEventListener("click", startRecording);
+stopButton.addEventListener("click", stopRecording);
+window.addEventListener("pagehide", () => {
+  const wasCapturing = recordingActive || requestingMicrophone;
+  resetRecording();
+  if (wasCapturing) {
+    const message = "Recording stopped when this page was left. Select Start to record again.";
+    setRecordingStatus(message);
+    setStatus(message, "info");
+  }
+});
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) return;
+  const wasCapturing = recordingActive || requestingMicrophone;
+  resetRecording();
+  if (wasCapturing) {
+    const message = "Recording stopped when this page was hidden. Select Start to record again.";
+    setRecordingStatus(message);
+    setStatus(message, "info");
+  }
+});
 
 updateDirection();
+updateRecordingControls();
