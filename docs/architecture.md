@@ -150,13 +150,14 @@ Browser
   → STT provider → transcript
   → Translation provider → target text
   → TTS provider → generated audio
-  → documented JSON or binary response strategy
-  ← transcript, translated text, status, and playable audio
+  → audio-file response body with percent-encoded text metadata headers
+  ← transcript, translated text, language/direction headers, and playable audio
 ```
 
-The implementation must choose one response strategy and document it. A mixed
-JSON/binary body is not used. Temporary audio is cleaned after success or
-failure, and client filenames are never interpreted as paths.
+The response body contains only generated audio; source transcript, translated
+text, language codes, and direction are returned in documented HTTP headers.
+The text headers are percent-encoded UTF-8. A mixed JSON/binary body is not
+used. Client filenames are never interpreted as paths.
 
 ## Error handling
 

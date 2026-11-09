@@ -23,6 +23,7 @@ from app.providers.translation import TranslationProvider
 from app.providers.tts import TTSProvider
 from app.schemas.translation import ErrorResponse
 from app.services.speech_to_text_service import SpeechToTextServiceError
+from app.services.speech_translation_service import SpeechTranslationServiceError
 from app.services.translation_service import TranslationServiceError
 from app.utils.audio import AudioInputError
 
@@ -121,6 +122,20 @@ def create_app(
                 code=error.code,
                 message=error.message,
                 stage="stt",
+            ).model_dump(),
+        )
+
+    @application.exception_handler(SpeechTranslationServiceError)
+    async def handle_speech_translation_error(
+        request: Request, error: SpeechTranslationServiceError
+    ) -> JSONResponse:
+        del request
+        return JSONResponse(
+            status_code=error.status_code,
+            content=ErrorResponse(
+                code=error.code,
+                message=error.message,
+                stage=error.stage,
             ).model_dump(),
         )
 
