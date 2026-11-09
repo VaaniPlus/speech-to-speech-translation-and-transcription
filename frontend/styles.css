@@ -302,6 +302,34 @@ h2 {
   height: 21px;
 }
 
+.recording-visual.is-recording {
+  background: #fff0ec;
+}
+
+.recording-visual.is-recording span {
+  background: #c65c49;
+  animation: recording-pulse 700ms ease-in-out infinite alternate;
+}
+
+.recording-visual.is-recording span:nth-child(2n) {
+  animation-delay: 180ms;
+}
+
+.recording-visual.is-recording span:nth-child(3n) {
+  animation-delay: 360ms;
+}
+
+@keyframes recording-pulse {
+  from { transform: scaleY(0.55); }
+  to { transform: scaleY(1.25); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recording-visual.is-recording span {
+    animation: none;
+  }
+}
+
 .recording-copy,
 .audio-copy {
   min-width: 0;
@@ -322,6 +350,16 @@ h2 {
   font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.recording-copy span[data-state="error"] {
+  color: #9a4b3d;
+  white-space: normal;
+}
+
+.recording-copy span[data-state="recording"] {
+  color: #a64e3e;
+  font-weight: 650;
 }
 
 .recording-actions {

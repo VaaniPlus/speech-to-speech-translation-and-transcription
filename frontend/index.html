@@ -61,20 +61,22 @@
               </div>
 
               <div class="recording-card">
-                <div class="recording-visual" aria-hidden="true">
+                <div class="recording-visual" id="recording-indicator" aria-hidden="true">
                   <span></span><span></span><span></span><span></span><span></span>
                   <span></span><span></span><span></span><span></span>
                 </div>
                 <div class="recording-copy">
                   <strong>Use your voice</strong>
-                  <span id="recording-status">Microphone capture is coming soon</span>
+                  <span id="recording-status" role="status" aria-live="polite">
+                    Choose Start to allow microphone access
+                  </span>
                 </div>
                 <div class="recording-actions">
-                  <button class="icon-button record-button" type="button" disabled
-                    aria-label="Start microphone recording" title="Microphone capture is not connected yet">
+                  <button class="icon-button record-button" id="record-button" type="button"
+                    aria-label="Start microphone recording" title="Start microphone recording">
                     <span aria-hidden="true">●</span>
                   </button>
-                  <button class="icon-button stop-button" type="button" disabled
+                  <button class="icon-button stop-button" id="stop-button" type="button" disabled
                     aria-label="Stop microphone recording" title="No recording is in progress">
                     <span aria-hidden="true">■</span>
                   </button>
@@ -144,7 +146,7 @@
 
           <div class="workspace-footnote" id="workspace-status" role="status" aria-live="polite">
             <span class="footnote-icon" aria-hidden="true">i</span>
-            <span id="workspace-status-text">Typed translation is ready. Microphone and audio playback are not connected yet.</span>
+            <span id="workspace-status-text">Typed translation is ready. Start recording to grant microphone access.</span>
           </div>
         </section>
       </main>
