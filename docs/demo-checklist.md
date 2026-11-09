@@ -43,6 +43,8 @@ must be labeled as such.
   guarded against duplicate submissions.
 - [ ] Select **Reset** during a pending text request and verify its late response
   cannot restore the cleared result.
+- [ ] Enable network throttling or use a cold model load and verify the loading
+  state remains visible while a slower response is pending.
 - [ ] Stop the backend or configure a provider failure, then repeat the request.
   Verify the safe error message appears without a traceback and the button resets.
 - [ ] Submit an invalid direction through the API and verify a useful 4xx response.
@@ -69,6 +71,8 @@ real model weights is a separate manual verification and must be labeled as such
 - [ ] Simulate an unsupported or failed audio response and verify a useful
   playback error is displayed.
 - [ ] Deny microphone permission and verify clear recovery guidance.
+- [ ] Send an empty or malformed audio file to `POST /api/speech-translate` and
+  verify the API returns a validation error without a traceback.
 - [ ] Reset while audio is active and verify playback stops and visible state
   clears.
 - [ ] Reset while speech processing is pending and verify the recording,

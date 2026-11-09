@@ -107,8 +107,9 @@ in-flight processing. Use HTTPS or localhost for microphone access.
 python -m pytest
 ```
 
-Real-model smoke tests are separate from the normal suite and remain skipped
-until their required environment variables and local resources are provided.
+The default suite uses fake providers and does not download model weights. See
+[testing](docs/testing.md) for the focused speech integration test and
+[optional real-model smoke test](docs/model-smoke-test.md).
 
 ## Project workflow
 

@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from app.core.config import Settings
 from app.main import create_app
-from app.providers.stt import STTProviderError, STTResult
+from app.providers.stt import AudioInput, STTProviderError, STTResult
 from app.providers.translation import TranslationProviderError
 from app.providers.tts import ManagedAudioArtifact, TTSProviderError, TTSResult
 
@@ -27,9 +27,11 @@ def wav_bytes() -> bytes:
 class FakeSTTProvider:
     def __init__(self, events: list[tuple[object, ...]]) -> None:
         self.events = events
+        self.audio_inputs: list[AudioInput] = []
 
     def transcribe(self, audio, language=None) -> STTResult:
-        del audio
+        assert isinstance(audio, AudioInput)
+        self.audio_inputs.append(audio)
         self.events.append(("stt", language))
         transcript = "नमस्ते" if language == "hi" else "Hello there."
         return STTResult(transcript=transcript, language=language, confidence=0.9)
@@ -68,17 +70,19 @@ def test_speech_translate_returns_audio_file_and_encoded_metadata(
     translated: str,
 ) -> None:
     events: list[tuple[object, ...]] = []
+    stt_provider = FakeSTTProvider(events)
     app = create_app(
         Settings(_env_file=None, provider_mode="mock"),
-        stt_provider=FakeSTTProvider(events),
+        stt_provider=stt_provider,
         translation_provider=FakeTranslationProvider(events),
         tts_provider=FakeTTSProvider(events),
     )
 
+    source_audio = wav_bytes()
     with TestClient(app) as client:
         response = client.post(
             "/api/speech-translate",
-            files={"file": ("../../client.wav", wav_bytes(), "audio/wav")},
+            files={"file": ("../../client.wav", source_audio, "audio/wav")},
             data={"direction": direction},
         )
 
@@ -93,6 +97,9 @@ def test_speech_translate_returns_audio_file_and_encoded_metadata(
     assert response.headers["x-source-language"] == source_language
     assert response.headers["x-target-language"] == target_language
     assert response.headers["x-translation-direction"] == direction
+    assert stt_provider.audio_inputs == [
+        AudioInput(data=source_audio, content_type="audio/wav")
+    ]
     assert events == [
         ("stt", source_language),
         ("translation", direction, transcript),
