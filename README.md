@@ -94,8 +94,10 @@ Open [frontend/index.html](frontend/index.html) in a desktop browser while the
 API is running. The typed-text UI is connected to `POST /api/translate` for
 English → Hindi and Hindi → English requests; loading and error states are
 shown in the browser. Microphone capture starts only after selecting Start and
-granting browser permission; audio remains in browser memory and is not yet
-uploaded. Translated-audio playback is not yet implemented. Use HTTPS or
+granting browser permission. After stopping, select **Translate recording**
+to send the captured audio and selected direction to the local speech
+translation API. The source transcript and translated text are shown
+separately; translated-audio playback is not yet implemented. Use HTTPS or
 localhost for microphone access.
 
 ### Run tests

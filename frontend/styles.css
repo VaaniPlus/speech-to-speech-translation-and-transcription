@@ -478,6 +478,14 @@ textarea::placeholder {
  animation: translate-pulse 900ms ease-in-out infinite alternate;
 }
 
+.speech-submit-button {
+ margin-top: 12px;
+}
+
+.speech-submit-button:disabled {
+ background: #547a6d;
+}
+
 @keyframes translate-pulse {
  from { opacity: 0.45; }
  to { opacity: 1; }

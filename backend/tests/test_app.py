@@ -1,6 +1,7 @@
 """Tests for FastAPI application initialization."""
 
 from fastapi.testclient import TestClient
+import pytest
 
 from app.core.config import Settings
 from app.main import create_app
@@ -24,3 +25,47 @@ def test_app_lifespan_starts_and_shuts_down_without_loading_models() -> None:
         assert response.status_code == 200
         assert app.state.settings.device == "auto"
         assert not hasattr(app.state, "models")
+
+
+@pytest.mark.parametrize(
+    "origin",
+    ["null", "http://127.0.0.1:5500", "http://localhost:3000"],
+)
+def test_app_allows_local_browser_origins_and_exposes_speech_metadata(
+    origin: str,
+) -> None:
+    app = create_app(Settings(_env_file=None))
+
+    with TestClient(app) as client:
+        response = client.options(
+            "/api/speech-translate",
+            headers={
+                "Origin": origin,
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+        metadata_response = client.get(
+            "/api/health",
+            headers={"Origin": origin},
+        )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == origin
+    assert "POST" in response.headers["access-control-allow-methods"]
+    assert metadata_response.headers["access-control-allow-origin"] == origin
+    assert "X-Transcript" in metadata_response.headers["access-control-expose-headers"]
+    assert "X-Translated-Text" in metadata_response.headers["access-control-expose-headers"]
+
+
+def test_app_does_not_allow_arbitrary_browser_origins() -> None:
+    app = create_app(Settings(_env_file=None))
+
+    with TestClient(app) as client:
+        response = client.get(
+            "/api/health",
+            headers={"Origin": "https://example.com"},
+        )
+
+    assert response.status_code == 200
+    assert "access-control-allow-origin" not in response.headers

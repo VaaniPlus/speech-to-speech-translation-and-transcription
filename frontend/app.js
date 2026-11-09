@@ -19,6 +19,8 @@ const recordButton = document.querySelector("#record-button");
 const stopButton = document.querySelector("#stop-button");
 const recordingStatus = document.querySelector("#recording-status");
 const recordingIndicator = document.querySelector("#recording-indicator");
+const speechSubmitButton = document.querySelector("#speech-submit-button");
+const speechSubmitLabel = document.querySelector("#speech-submit-label");
 
 const directions = {
   "en-to-hi": {
@@ -41,6 +43,9 @@ const directions = {
 
 let activeRequestId = 0;
 let activeController = null;
+let speechRequestId = 0;
+let speechController = null;
+let speechProcessing = false;
 let mediaStream = null;
 let mediaRecorder = null;
 let recordingChunks = [];
@@ -78,6 +83,8 @@ function updateRecordingControls() {
   stopButton.disabled = !recordingActive;
   stopButton.title = recordingActive ? "Stop microphone recording" : "No recording is in progress";
   recordingIndicator.classList.toggle("is-recording", recordingActive);
+  speechSubmitButton.disabled =
+    !(capturedAudio instanceof Blob) || speechProcessing || recordingActive || recordingFinalizing;
 }
 
 function microphoneErrorMessage(error) {
@@ -127,6 +134,9 @@ async function startRecording() {
   }
 
   const sessionId = ++recordingSessionId;
+  cancelTextRequest();
+  cancelSpeechRequest();
+  clearTranslationOutput();
   requestingMicrophone = true;
   capturedAudio = null;
   setRecordingStatus("Waiting for microphone permission…", "loading");
@@ -249,7 +259,10 @@ function updateDirection() {
 
 function updateInput() {
   characterCount.textContent = `${sourceText.value.length} / ${sourceText.maxLength}`;
-  translateButton.disabled = sourceText.value.trim().length === 0 || translateButton.classList.contains("is-loading");
+  translateButton.disabled =
+    sourceText.value.trim().length === 0 ||
+    translateButton.classList.contains("is-loading") ||
+    speechProcessing;
 }
 
 function setStatus(message, state = "info") {
@@ -257,11 +270,145 @@ function setStatus(message, state = "info") {
   workspaceStatus.dataset.state = state;
 }
 
-function getApiUrl() {
+function getApiUrl(endpoint = "translate") {
   if (window.location.protocol === "http:" || window.location.protocol === "https:") {
-    return `${window.location.origin}/api/translate`;
+    const isLocalHost = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+    if (isLocalHost && window.location.port !== "8000") {
+      return `http://${window.location.hostname}:8000/api/${endpoint}`;
+    }
+    return `${window.location.origin}/api/${endpoint}`;
   }
-  return "http://127.0.0.1:8000/api/translate";
+  return `http://127.0.0.1:8000/api/${endpoint}`;
+}
+
+function clearTranslationOutput() {
+  placeholderContent.hidden = false;
+  translationOutput.hidden = true;
+  sourceOutput.textContent = "";
+  translatedOutput.textContent = "";
+}
+
+function cancelSpeechRequest() {
+  speechRequestId += 1;
+  if (speechController) speechController.abort();
+  speechController = null;
+  speechProcessing = false;
+  speechSubmitButton.classList.remove("is-loading");
+  speechSubmitLabel.textContent = "Translate recording";
+  updateRecordingControls();
+  updateInput();
+}
+
+function cancelTextRequest() {
+  activeRequestId += 1;
+  if (activeController) activeController.abort();
+  activeController = null;
+  translateButton.classList.remove("is-loading");
+  translateButtonLabel.textContent = "Translate text";
+  updateInput();
+}
+
+function decodeMetadataHeader(response, name) {
+  const value = response.headers.get(name);
+  if (!value) return null;
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    throw new Error("The speech service returned invalid text metadata. Please retry.");
+  }
+}
+
+async function getApiError(response) {
+  try {
+    const data = await response.json();
+    return typeof data?.message === "string" && data.message.trim()
+      ? data.message
+      : "Speech processing could not be completed. Please retry.";
+  } catch {
+    return "Speech processing could not be completed. Please retry.";
+  }
+}
+
+async function translateRecording() {
+  if (!(capturedAudio instanceof Blob) || speechProcessing) {
+    setStatus("Record audio and stop the recording before submitting it.", "error");
+    return;
+  }
+
+  cancelTextRequest();
+
+  const audio = capturedAudio;
+  const direction = directionSelect.value;
+  const requestId = ++speechRequestId;
+  const controller = new AbortController();
+  speechController = controller;
+  speechProcessing = true;
+  speechSubmitButton.classList.add("is-loading");
+  speechSubmitLabel.textContent = "Processing recording…";
+  updateRecordingControls();
+  updateInput();
+  placeholderContent.hidden = true;
+  translationOutput.hidden = false;
+  sourceOutput.textContent = "Waiting for source transcript…";
+  translatedOutput.textContent = "Waiting for translation…";
+  setStatus("Uploading recording and processing speech…", "loading");
+
+  const formData = new FormData();
+  const mediaType = (audio.type || "audio/webm").split(";", 1)[0].toLowerCase();
+  const extensions = {
+    "audio/flac": "flac",
+    "audio/mp4": "mp4",
+    "audio/mpeg": "mp3",
+    "audio/ogg": "ogg",
+    "audio/wav": "wav",
+    "audio/webm": "webm",
+  };
+  formData.append("file", audio, `recording.${extensions[mediaType] || "webm"}`);
+  formData.append("direction", direction);
+
+  try {
+    const response = await fetch(getApiUrl("speech-translate"), {
+      method: "POST",
+      body: formData,
+      signal: controller.signal,
+    });
+
+    if (requestId !== speechRequestId) return;
+    if (!response.ok) throw new Error(await getApiError(response));
+
+    const transcript = decodeMetadataHeader(response, "X-Transcript");
+    const translation = decodeMetadataHeader(response, "X-Translated-Text");
+    if (!transcript?.trim() || !translation?.trim()) {
+      throw new Error("The speech service returned incomplete text metadata. Please retry.");
+    }
+
+    sourceOutput.textContent = transcript;
+    sourceOutput.lang = direction === "hi-to-en" ? "hi" : "en";
+    translatedOutput.textContent = translation;
+    translatedOutput.lang = direction === "en-to-hi" ? "hi" : "en";
+    setStatus("Speech translation complete. Source transcript and translation are shown separately.", "success");
+  } catch (error) {
+    if ((error instanceof Error && error.name === "AbortError") || requestId !== speechRequestId) {
+      return;
+    }
+    sourceOutput.textContent = "Transcript unavailable";
+    translatedOutput.textContent = "Translation unavailable";
+    setStatus(
+      error instanceof Error
+        ? `${error.message} Your recording is available to retry.`
+        : "Speech processing failed. Your recording is available to retry.",
+      "error",
+    );
+  } finally {
+    if (requestId === speechRequestId) {
+      speechController = null;
+      speechProcessing = false;
+      speechSubmitButton.classList.remove("is-loading");
+      speechSubmitLabel.textContent = "Translate recording";
+      updateRecordingControls();
+      updateInput();
+    }
+  }
 }
 
 async function translateText() {
@@ -271,6 +418,7 @@ async function translateText() {
     return;
   }
 
+  cancelSpeechRequest();
   if (activeController) activeController.abort();
 
   const requestId = ++activeRequestId;
@@ -319,15 +467,13 @@ async function translateText() {
 }
 
 directionSelect.addEventListener("change", () => {
+  cancelTextRequest();
+  cancelSpeechRequest();
   resetRecording();
-  activeRequestId += 1;
-  if (activeController) activeController.abort();
-  activeController = null;
-  translateButton.classList.remove("is-loading");
-  translateButtonLabel.textContent = "Translate text";
   updateDirection();
   placeholderContent.hidden = false;
   translationOutput.hidden = true;
+  sourceOutput.textContent = "";
   translatedOutput.textContent = "";
   setRecordingStatus("Choose Start to allow microphone access");
   setStatus("Direction changed. Ready to translate.", "info");
@@ -339,6 +485,7 @@ sourceText.addEventListener("input", () => {
   }
 });
 translateButton.addEventListener("click", translateText);
+speechSubmitButton.addEventListener("click", translateRecording);
 recordButton.addEventListener("click", startRecording);
 stopButton.addEventListener("click", stopRecording);
 window.addEventListener("pagehide", () => {

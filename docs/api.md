@@ -156,6 +156,8 @@ Clients should URL-decode those two values as UTF-8.
 This is a file response, not a JSON/binary multipart body. Browsers can create
 a playable object URL from the response body and read the metadata headers.
 `Access-Control-Expose-Headers` is set for the metadata and file headers.
+The API allows browser requests from `file://` pages (`Origin: null`) and
+localhost/127.0.0.1 development origins, without enabling credentialed CORS.
 
 Invalid direction or audio returns HTTP 4xx with the `validation` stage. A
 source-language mismatch returns HTTP 422 with stage `stt`. Provider failures
