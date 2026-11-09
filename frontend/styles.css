@@ -604,10 +604,32 @@ textarea::placeholder {
 }
 
 .play-button {
-  margin-left: auto;
   color: white;
   background: var(--green);
   font-size: 10px;
+}
+
+.audio-controls {
+  margin-left: auto;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.audio-copy {
+  flex: 1 1 auto;
+}
+
+.audio-copy #audio-status {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.replay-button {
+  color: var(--green);
+  background: var(--mint);
+  font-size: 17px;
 }
 
 .workspace-footnote {

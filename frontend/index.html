@@ -141,12 +141,21 @@
                 <div class="audio-icon" aria-hidden="true">♫</div>
                 <div class="audio-copy">
                   <strong>Listen to your translation</strong>
-                  <span>Generated audio will appear here</span>
+                  <span id="audio-status" role="status" aria-live="polite">
+                    Generated audio will appear here
+                  </span>
                 </div>
-                <button class="icon-button play-button" type="button" disabled
-                  aria-label="Play translated audio" title="No translated audio is available">
-                  <span aria-hidden="true">▶</span>
-                </button>
+                <div class="audio-controls" role="group" aria-label="Translated audio controls">
+                  <button class="icon-button play-button" id="audio-toggle-button" type="button"
+                    disabled aria-label="Play translated audio" title="No translated audio is available">
+                    <span aria-hidden="true">▶</span>
+                  </button>
+                  <button class="icon-button replay-button" id="audio-replay-button" type="button"
+                    disabled aria-label="Replay translated audio" title="No translated audio is available">
+                    <span aria-hidden="true">↻</span>
+                  </button>
+                </div>
+                <audio id="translated-audio" preload="none" hidden></audio>
               </div>
             </section>
           </div>
