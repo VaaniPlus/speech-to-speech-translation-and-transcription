@@ -100,6 +100,7 @@ def test_error_response_has_a_stable_client_safe_shape() -> None:
         code="translation_failed",
         message="Translation could not be completed.",
         stage="translation",
+        request_id="request-id",
     )
 
     assert error.model_dump() == {
@@ -107,6 +108,7 @@ def test_error_response_has_a_stable_client_safe_shape() -> None:
         "code": "translation_failed",
         "message": "Translation could not be completed.",
         "stage": "translation",
+        "request_id": "request-id",
     }
 
 
@@ -116,4 +118,5 @@ def test_error_response_rejects_unsupported_stage() -> None:
             code="provider_failed",
             message="Provider failed.",
             stage="model-loading",
+            request_id="request-id",
         )

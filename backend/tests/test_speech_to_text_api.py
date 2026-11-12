@@ -1,6 +1,7 @@
 """Speech-to-text API success and failure tests using fake providers."""
 
 from io import BytesIO
+import time
 import wave
 
 import pytest
@@ -45,6 +46,13 @@ class FailingSTTProvider:
     def transcribe(self, audio, language=None) -> STTResult:
         del audio, language
         raise STTProviderError("private model path and provider details")
+
+
+class SlowSTTProvider:
+    def transcribe(self, audio, language=None) -> STTResult:
+        del audio
+        time.sleep(0.5)
+        return STTResult(transcript="Hello there.", language=language or "en")
 
 
 @pytest.mark.parametrize(
@@ -112,7 +120,8 @@ def test_speech_to_text_endpoint_documents_multipart_and_response_schemas() -> N
     assert operation["responses"]["200"]["content"]["application/json"]["schema"][
         "$ref"
     ].endswith("/SpeechToTextResponse")
-    for status in ("413", "415", "422", "502", "503"):
+    assert "X-Request-ID" in operation["responses"]["200"]["headers"]
+    for status in ("413", "415", "422", "500", "502", "503", "504"):
         assert status in operation["responses"]
 
 
@@ -196,6 +205,7 @@ def test_speech_to_text_endpoint_reports_provider_failure_safely() -> None:
         "code": "stt_failed",
         "message": "Speech could not be transcribed.",
         "stage": "stt",
+        "request_id": response.headers["x-request-id"],
     }
     assert "private model path" not in response.text
 
@@ -213,3 +223,30 @@ def test_speech_to_text_endpoint_reports_missing_provider() -> None:
     assert response.status_code == 503
     assert response.json()["code"] == "stt_provider_unavailable"
     assert response.json()["stage"] == "stt"
+    assert response.json()["request_id"] == response.headers["x-request-id"]
+
+
+def test_speech_to_text_endpoint_reports_provider_timeout_with_request_id(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    app = create_app(
+        Settings(
+            _env_file=None,
+            provider_timeout_seconds=0.1,
+        ),
+        stt_provider=SlowSTTProvider(),
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/speech-to-text",
+            files={"file": ("speech.wav", wav_bytes(), "audio/wav")},
+            data={"language": "en"},
+        )
+
+    assert response.status_code == 504
+    assert response.json()["code"] == "stt_timeout"
+    assert response.json()["stage"] == "stt"
+    assert response.json()["request_id"] == response.headers["x-request-id"]
+    assert "outcome=timeout" in caplog.text
+    assert f"request_id={response.headers['x-request-id']}" in caplog.text

@@ -3,13 +3,12 @@
 import logging
 import time
 
-from starlette.concurrency import run_in_threadpool
-
 from app.providers.translation import (
     TranslationProvider,
     TranslationProviderError,
     TranslationResult,
 )
+from app.services.provider_execution import ProviderCallTimeout, run_provider_call
 from app.schemas.translation import (
     LANGUAGES_BY_DIRECTION,
     TranslationRequest,
@@ -37,12 +36,21 @@ class TranslationFailed(TranslationServiceError):
     """Raised when a configured provider cannot produce a translation."""
 
 
+class TranslationTimeout(TranslationServiceError):
+    """Raised when translation exceeds its configured timeout."""
+
+    status_code = 504
+    code = "translation_timeout"
+    message = "Translation timed out."
+
+
 logger = logging.getLogger(__name__)
 
 
 async def translate_text(
     request: TranslationRequest,
     provider: TranslationProvider | None,
+    timeout_seconds: float = 120.0,
 ) -> TranslationResponse:
     """Translate validated text using the configured provider."""
     started_at = time.perf_counter()
@@ -55,11 +63,18 @@ async def translate_text(
         raise TranslationProviderUnavailable
 
     try:
-        translated_text = await run_in_threadpool(
-            provider.translate,
-            request.source_text,
-            request.direction,
+        translated_text = await run_provider_call(
+            lambda: provider.translate(request.source_text, request.direction),
+            timeout_seconds,
         )
+    except ProviderCallTimeout as error:
+        logger.warning(
+            "translation service outcome=timeout direction=%s "
+            "timeout_seconds=%.3f",
+            request.direction,
+            timeout_seconds,
+        )
+        raise TranslationTimeout from error
     except TranslationProviderError as error:
         logger.warning(
             "translation service outcome=provider_error direction=%s duration_ms=%.3f error_type=%s",

@@ -59,6 +59,14 @@ def health_check() -> dict[str, str]:
     "/speech-to-text",
     response_model=SpeechToTextResponse,
     responses={
+        200: {
+            "headers": {
+                "X-Request-ID": {
+                    "description": "Request correlation ID.",
+                    "schema": {"type": "string"},
+                },
+            },
+        },
         413: {
             "model": ErrorResponse,
             "description": "Audio upload exceeds a configured limit.",
@@ -78,6 +86,14 @@ def health_check() -> dict[str, str]:
         503: {
             "model": ErrorResponse,
             "description": "No speech-to-text provider is configured.",
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "An unexpected server error occurred.",
+        },
+        504: {
+            "model": ErrorResponse,
+            "description": "Speech-to-text provider timed out.",
         },
     },
     tags=["speech"],
@@ -114,7 +130,12 @@ async def speech_to_text(
         file,
         max_size_bytes=settings.max_upload_size_bytes,
     )
-    return await transcribe_audio(audio, requested_language, provider)
+    return await transcribe_audio(
+        audio,
+        requested_language,
+        provider,
+        settings.provider_timeout_seconds,
+    )
 
 
 @router.post(
@@ -147,6 +168,10 @@ async def speech_to_text(
                         "enum": ["en-to-hi", "hi-to-en"],
                     }
                 },
+                "X-Request-ID": {
+                    "description": "Request correlation ID.",
+                    "schema": {"type": "string"},
+                },
                 "Content-Disposition": {
                     "description": "Download filename for generated audio.",
                     "schema": {"type": "string"},
@@ -176,6 +201,14 @@ async def speech_to_text(
         503: {
             "model": ErrorResponse,
             "description": "A speech processing provider is unavailable.",
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "An unexpected server error occurred.",
+        },
+        504: {
+            "model": ErrorResponse,
+            "description": "A speech processing provider timed out.",
         },
     },
     tags=["speech"],
@@ -220,6 +253,7 @@ async def speech_translate(
         stt_provider,
         translation_provider,
         tts_provider,
+        settings.provider_timeout_seconds,
     )
     return _speech_translation_file_response(result)
 
@@ -236,7 +270,8 @@ def _speech_translation_file_response(
         "X-Translation-Direction": result.direction,
         "Access-Control-Expose-Headers": (
             "X-Transcript, X-Translated-Text, X-Source-Language, "
-            "X-Target-Language, X-Translation-Direction, Content-Disposition"
+            "X-Target-Language, X-Translation-Direction, Content-Disposition, "
+            "X-Request-ID"
         ),
     }
     filename = f"translated-speech{CONTENT_TYPE_SUFFIXES[result.content_type]}"
@@ -260,11 +295,30 @@ def _speech_translation_file_response(
     "/translate",
     response_model=TranslationResponse,
     responses={
-        422: {"description": "Request validation failed."},
+        200: {
+            "headers": {
+                "X-Request-ID": {
+                    "description": "Request correlation ID.",
+                    "schema": {"type": "string"},
+                },
+            },
+        },
+        422: {
+            "model": ErrorResponse,
+            "description": "Request validation failed.",
+        },
         502: {"model": ErrorResponse, "description": "Translation provider failed."},
         503: {
             "model": ErrorResponse,
             "description": "No translation provider is configured.",
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "An unexpected server error occurred.",
+        },
+        504: {
+            "model": ErrorResponse,
+            "description": "Translation provider timed out.",
         },
     },
     tags=["translation"],
@@ -276,6 +330,11 @@ async def translate(
         TranslationProvider | None,
         Depends(get_translation_provider),
     ],
+    settings: Annotated[Settings, Depends(get_app_settings)],
 ) -> TranslationResponse:
     """Translate non-empty English or Hindi text in the selected direction."""
-    return await translate_text(payload, provider)
+    return await translate_text(
+        payload,
+        provider,
+        settings.provider_timeout_seconds,
+    )

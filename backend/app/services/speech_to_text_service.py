@@ -4,10 +4,9 @@ import logging
 import math
 import time
 
-from starlette.concurrency import run_in_threadpool
-
 from app.providers.stt import AudioInput, LanguageCode, STTProvider, STTResult
 from app.schemas.speech import SpeechToTextResponse
+from app.services.provider_execution import ProviderCallTimeout, run_provider_call
 
 logger = logging.getLogger(__name__)
 
@@ -32,10 +31,19 @@ class SpeechToTextFailed(SpeechToTextServiceError):
     """Raised when the provider fails or returns invalid transcription data."""
 
 
+class SpeechToTextTimeout(SpeechToTextServiceError):
+    """Raised when speech transcription exceeds its configured timeout."""
+
+    status_code = 504
+    code = "stt_timeout"
+    message = "Speech transcription timed out."
+
+
 async def transcribe_audio(
     audio: AudioInput,
     requested_language: LanguageCode | None,
     provider: STTProvider | None,
+    timeout_seconds: float = 120.0,
 ) -> SpeechToTextResponse:
     """Transcribe validated audio and return safe, typed language metadata."""
     started_at = time.perf_counter()
@@ -44,11 +52,17 @@ async def transcribe_audio(
         raise STTProviderUnavailable
 
     try:
-        result = await run_in_threadpool(
-            provider.transcribe,
-            audio,
-            requested_language,
+        result = await run_provider_call(
+            lambda: provider.transcribe(audio, requested_language),
+            timeout_seconds,
         )
+    except ProviderCallTimeout as error:
+        logger.warning(
+            "speech_to_text outcome=timeout requested_language=%s timeout_seconds=%.3f",
+            requested_language or "auto",
+            timeout_seconds,
+        )
+        raise SpeechToTextTimeout from error
     except Exception as error:
         logger.warning(
             "speech_to_text outcome=provider_error error_type=%s",

@@ -28,6 +28,7 @@ def test_settings_have_local_defaults() -> None:
     assert settings.log_level == "INFO"
     assert settings.device == "auto"
     assert settings.max_upload_size_bytes == 25 * 1024 * 1024
+    assert settings.provider_timeout_seconds == 120.0
     assert settings.model_cache_dir.name == "models"
 
 
@@ -37,6 +38,7 @@ def test_settings_read_environment_variables(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setenv("LOG_LEVEL", "debug")
     monkeypatch.setenv("DEVICE", "cpu")
     monkeypatch.setenv("MAX_UPLOAD_SIZE_BYTES", "1048576")
+    monkeypatch.setenv("PROVIDER_TIMEOUT_SECONDS", "45")
 
     settings = Settings(_env_file=None)
 
@@ -45,6 +47,7 @@ def test_settings_read_environment_variables(monkeypatch: pytest.MonkeyPatch) ->
     assert settings.log_level == "DEBUG"
     assert settings.device == "cpu"
     assert settings.max_upload_size_bytes == 1048576
+    assert settings.provider_timeout_seconds == 45.0
 
 
 def test_settings_read_dotenv_file(tmp_path) -> None:
@@ -63,6 +66,7 @@ def test_settings_read_dotenv_file(tmp_path) -> None:
         ("PORT", "70000", "port"),
         ("DEVICE", "tpu", "device"),
         ("MAX_UPLOAD_SIZE_BYTES", "0", "max_upload_size_bytes"),
+        ("PROVIDER_TIMEOUT_SECONDS", "0", "provider_timeout_seconds"),
         ("LOG_LEVEL", "TRACE", "log_level"),
     ],
 )

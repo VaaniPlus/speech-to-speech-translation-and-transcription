@@ -93,6 +93,9 @@ class ErrorResponse(BaseModel):
         default=None,
         description="Pipeline stage that failed, when applicable.",
     )
+    request_id: str = Field(
+        description="Correlation ID for this request, also returned in X-Request-ID.",
+    )
 
 
 __all__ = [
