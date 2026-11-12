@@ -4,6 +4,7 @@ import logging
 import math
 import time
 
+from app.core.logging_config import log_event
 from app.providers.stt import AudioInput, LanguageCode, STTProvider, STTResult
 from app.schemas.speech import SpeechToTextResponse
 from app.services.provider_execution import ProviderCallTimeout, run_provider_call
@@ -48,7 +49,14 @@ async def transcribe_audio(
     """Transcribe validated audio and return safe, typed language metadata."""
     started_at = time.perf_counter()
     if provider is None:
-        logger.warning("speech_to_text outcome=provider_unavailable")
+        log_event(
+            logger,
+            logging.WARNING,
+            "stage_result",
+            stage="stt",
+            outcome="provider_unavailable",
+            duration_ms=round((time.perf_counter() - started_at) * 1000, 3),
+        )
         raise STTProviderUnavailable
 
     try:
@@ -57,21 +65,39 @@ async def transcribe_audio(
             timeout_seconds,
         )
     except ProviderCallTimeout as error:
-        logger.warning(
-            "speech_to_text outcome=timeout requested_language=%s timeout_seconds=%.3f",
-            requested_language or "auto",
-            timeout_seconds,
+        log_event(
+            logger,
+            logging.WARNING,
+            "stage_result",
+            stage="stt",
+            outcome="timeout",
+            requested_language=requested_language or "auto",
+            timeout_seconds=timeout_seconds,
+            duration_ms=round((time.perf_counter() - started_at) * 1000, 3),
         )
         raise SpeechToTextTimeout from error
     except Exception as error:
-        logger.warning(
-            "speech_to_text outcome=provider_error error_type=%s",
-            type(error).__name__,
+        log_event(
+            logger,
+            logging.WARNING,
+            "stage_result",
+            stage="stt",
+            outcome="provider_error",
+            error_type=type(error).__name__,
+            duration_ms=round((time.perf_counter() - started_at) * 1000, 3),
         )
         raise SpeechToTextFailed from error
 
     if not isinstance(result, STTResult):
-        logger.warning("speech_to_text outcome=invalid_result result_type=%s", type(result).__name__)
+        log_event(
+            logger,
+            logging.WARNING,
+            "stage_result",
+            stage="stt",
+            outcome="invalid_result",
+            error_type=type(result).__name__,
+            duration_ms=round((time.perf_counter() - started_at) * 1000, 3),
+        )
         raise SpeechToTextFailed
 
     transcript = (
@@ -100,7 +126,14 @@ async def transcribe_audio(
         or detected_language is None
         or not valid_confidence
     ):
-        logger.warning("speech_to_text outcome=invalid_result")
+        log_event(
+            logger,
+            logging.WARNING,
+            "stage_result",
+            stage="stt",
+            outcome="invalid_result",
+            duration_ms=round((time.perf_counter() - started_at) * 1000, 3),
+        )
         raise SpeechToTextFailed
 
     response = SpeechToTextResponse(
@@ -109,11 +142,14 @@ async def transcribe_audio(
         detected_language=detected_language,
         confidence=confidence,
     )
-    logger.info(
-        "speech_to_text outcome=success requested_language=%s "
-        "detected_language=%s duration_ms=%.3f",
-        requested_language or "auto",
-        detected_language,
-        (time.perf_counter() - started_at) * 1000,
+    log_event(
+        logger,
+        logging.INFO,
+        "stage_result",
+        stage="stt",
+        outcome="success",
+        requested_language=requested_language or "auto",
+        detected_language=detected_language,
+        duration_ms=round((time.perf_counter() - started_at) * 1000, 3),
     )
     return response

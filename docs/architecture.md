@@ -183,6 +183,14 @@ Route responses must not expose Python tracebacks, model package exceptions,
 or machine-specific paths. Raw audio and full transcript text are not logged by
 default.
 
+Application logs are newline-delimited JSON written to standard error (the
+local Uvicorn terminal by default). Request events include the request ID,
+HTTP outcome, and duration; each STT, translation, and TTS stage records its
+own outcome and duration. Provider failures record exception type and stable
+error code without logging exception messages or input/output payloads. To
+retain logs locally, redirect standard error to a file such as
+`.\vaani-api.log`; `*.log` files are ignored by Git.
+
 ## Asynchronous execution and local resources
 
 Provider inference must not execute blocking model calls directly on the FastAPI

@@ -145,6 +145,12 @@ def test_translation_service_logs_no_source_text(caplog: pytest.LogCaptureFixtur
         )
 
     assert private_text not in caplog.text
-    assert "outcome=success" in caplog.text
-    assert "direction=en-to-hi" in caplog.text
-    assert "duration_ms=" in caplog.text
+    stage_event = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "stage_result"
+    )
+    assert stage_event.stage == "translation"
+    assert stage_event.outcome == "success"
+    assert stage_event.direction == "en-to-hi"
+    assert isinstance(stage_event.duration_ms, float)

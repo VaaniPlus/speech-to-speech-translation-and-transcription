@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 import time
 
+from app.core.logging_config import log_event
 from app.providers.stt import AudioInput, LanguageCode, STTProvider
 from app.providers.translation import TranslationProvider
 from app.providers.tts import (
@@ -180,8 +181,16 @@ async def translate_speech(
             stage="translation",
         ) from error
 
+    tts_started_at = time.perf_counter()
     if tts_provider is None:
-        logger.warning("speech_translation outcome=tts_provider_unavailable")
+        log_event(
+            logger,
+            logging.WARNING,
+            "stage_result",
+            stage="tts",
+            outcome="provider_unavailable",
+            duration_ms=round((time.perf_counter() - tts_started_at) * 1000, 3),
+        )
         raise SpeechTranslationProviderUnavailable
 
     try:
@@ -194,9 +203,14 @@ async def translate_speech(
         )
         generated_audio, content_type = _normalize_audio_result(tts_result)
     except ProviderCallTimeout as error:
-        logger.warning(
-            "speech_translation outcome=timeout stage=tts timeout_seconds=%.3f",
-            timeout_seconds,
+        log_event(
+            logger,
+            logging.WARNING,
+            "stage_result",
+            stage="tts",
+            outcome="timeout",
+            timeout_seconds=timeout_seconds,
+            duration_ms=round((time.perf_counter() - tts_started_at) * 1000, 3),
         )
         raise SpeechTranslationFailed(
             status_code=504,
@@ -204,12 +218,26 @@ async def translate_speech(
             message="Speech synthesis timed out.",
             stage="tts",
         ) from error
-    except SpeechTranslationServiceError:
+    except SpeechTranslationServiceError as error:
+        log_event(
+            logger,
+            logging.WARNING,
+            "stage_result",
+            stage="tts",
+            outcome="invalid_output",
+            error_code=error.code,
+            duration_ms=round((time.perf_counter() - tts_started_at) * 1000, 3),
+        )
         raise
     except TTSProviderError as error:
-        logger.warning(
-            "speech_translation outcome=tts_provider_error error_type=%s",
-            type(error).__name__,
+        log_event(
+            logger,
+            logging.WARNING,
+            "stage_result",
+            stage="tts",
+            outcome="provider_error",
+            error_type=type(error).__name__,
+            duration_ms=round((time.perf_counter() - tts_started_at) * 1000, 3),
         )
         raise SpeechTranslationFailed(
             status_code=502,
@@ -218,9 +246,14 @@ async def translate_speech(
             stage="tts",
         ) from error
     except Exception as error:
-        logger.warning(
-            "speech_translation outcome=tts_unexpected_error error_type=%s",
-            type(error).__name__,
+        log_event(
+            logger,
+            logging.WARNING,
+            "stage_result",
+            stage="tts",
+            outcome="provider_error",
+            error_type=type(error).__name__,
+            duration_ms=round((time.perf_counter() - tts_started_at) * 1000, 3),
         )
         raise SpeechTranslationFailed(
             status_code=502,
@@ -230,6 +263,15 @@ async def translate_speech(
         ) from error
 
     if isinstance(generated_audio, bytes) and not generated_audio:
+        log_event(
+            logger,
+            logging.WARNING,
+            "stage_result",
+            stage="tts",
+            outcome="invalid_output",
+            error_code="tts_failed",
+            duration_ms=round((time.perf_counter() - tts_started_at) * 1000, 3),
+        )
         raise SpeechTranslationFailed(
             status_code=502,
             code="tts_failed",
@@ -237,10 +279,22 @@ async def translate_speech(
             stage="tts",
         )
 
-    logger.info(
-        "speech_translation outcome=success direction=%s duration_ms=%.3f",
-        direction,
-        (time.perf_counter() - started_at) * 1000,
+    log_event(
+        logger,
+        logging.INFO,
+        "stage_result",
+        stage="tts",
+        outcome="success",
+        direction=direction,
+        duration_ms=round((time.perf_counter() - tts_started_at) * 1000, 3),
+    )
+    log_event(
+        logger,
+        logging.INFO,
+        "speech_translation_complete",
+        outcome="success",
+        direction=direction,
+        duration_ms=round((time.perf_counter() - started_at) * 1000, 3),
     )
     return SpeechTranslationResult(
         transcript=transcription.transcript,

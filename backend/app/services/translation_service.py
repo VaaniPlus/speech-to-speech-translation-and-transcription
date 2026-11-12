@@ -3,6 +3,7 @@
 import logging
 import time
 
+from app.core.logging_config import log_event
 from app.providers.translation import (
     TranslationProvider,
     TranslationProviderError,
@@ -55,10 +56,14 @@ async def translate_text(
     """Translate validated text using the configured provider."""
     started_at = time.perf_counter()
     if provider is None:
-        logger.warning(
-            "translation service outcome=provider_unavailable direction=%s duration_ms=%.3f",
-            request.direction,
-            (time.perf_counter() - started_at) * 1000,
+        log_event(
+            logger,
+            logging.WARNING,
+            "stage_result",
+            stage="translation",
+            outcome="provider_unavailable",
+            direction=request.direction,
+            duration_ms=round((time.perf_counter() - started_at) * 1000, 3),
         )
         raise TranslationProviderUnavailable
 
@@ -68,27 +73,39 @@ async def translate_text(
             timeout_seconds,
         )
     except ProviderCallTimeout as error:
-        logger.warning(
-            "translation service outcome=timeout direction=%s "
-            "timeout_seconds=%.3f",
-            request.direction,
-            timeout_seconds,
+        log_event(
+            logger,
+            logging.WARNING,
+            "stage_result",
+            stage="translation",
+            outcome="timeout",
+            direction=request.direction,
+            timeout_seconds=timeout_seconds,
+            duration_ms=round((time.perf_counter() - started_at) * 1000, 3),
         )
         raise TranslationTimeout from error
     except TranslationProviderError as error:
-        logger.warning(
-            "translation service outcome=provider_error direction=%s duration_ms=%.3f error_type=%s",
-            request.direction,
-            (time.perf_counter() - started_at) * 1000,
-            type(error).__name__,
+        log_event(
+            logger,
+            logging.WARNING,
+            "stage_result",
+            stage="translation",
+            outcome="provider_error",
+            direction=request.direction,
+            duration_ms=round((time.perf_counter() - started_at) * 1000, 3),
+            error_type=type(error).__name__,
         )
         raise TranslationFailed from error
     except Exception as error:
-        logger.warning(
-            "translation service outcome=unexpected_provider_error direction=%s duration_ms=%.3f error_type=%s",
-            request.direction,
-            (time.perf_counter() - started_at) * 1000,
-            type(error).__name__,
+        log_event(
+            logger,
+            logging.WARNING,
+            "stage_result",
+            stage="translation",
+            outcome="provider_error",
+            direction=request.direction,
+            duration_ms=round((time.perf_counter() - started_at) * 1000, 3),
+            error_type=type(error).__name__,
         )
         raise TranslationFailed from error
 
@@ -96,10 +113,14 @@ async def translate_text(
         translated_text = translated_text.translated_text
 
     if not isinstance(translated_text, str) or not translated_text.strip():
-        logger.warning(
-            "translation service outcome=empty_output direction=%s duration_ms=%.3f",
-            request.direction,
-            (time.perf_counter() - started_at) * 1000,
+        log_event(
+            logger,
+            logging.WARNING,
+            "stage_result",
+            stage="translation",
+            outcome="invalid_output",
+            direction=request.direction,
+            duration_ms=round((time.perf_counter() - started_at) * 1000, 3),
         )
         raise TranslationFailed
 
@@ -111,9 +132,13 @@ async def translate_text(
         target_language=target_language,
         translated_text=translated_text.strip(),
     )
-    logger.info(
-        "translation service outcome=success direction=%s duration_ms=%.3f",
-        request.direction,
-        (time.perf_counter() - started_at) * 1000,
+    log_event(
+        logger,
+        logging.INFO,
+        "stage_result",
+        stage="translation",
+        outcome="success",
+        direction=request.direction,
+        duration_ms=round((time.perf_counter() - started_at) * 1000, 3),
     )
     return response

@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 import pytest
 
 from app.core.config import Settings
+from app.core.logging_config import log_event
 from app.main import create_app
 
 
@@ -75,6 +76,17 @@ def test_app_does_not_allow_arbitrary_browser_origins() -> None:
     assert "access-control-allow-origin" not in response.headers
 
 
+def test_structured_logger_rejects_unapproved_payload_fields() -> None:
+    with pytest.raises(ValueError, match="Unsupported structured log fields"):
+        log_event(
+            logging.getLogger("test"),
+            logging.INFO,
+            "stage_result",
+            stage="translation",
+            source_text="private input",
+        )
+
+
 def test_unexpected_error_returns_safe_correlated_response(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -98,4 +110,21 @@ def test_unexpected_error_returns_safe_correlated_response(
         "request_id": response.headers["x-request-id"],
     }
     assert "C:\\private\\models\\secret" not in response.text
-    assert f"request_id={response.headers['x-request-id']}" in caplog.text
+    failure_log = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "request_failed"
+    )
+    assert failure_log.request_id == response.headers["x-request-id"]
+    assert failure_log.error_type == "RuntimeError"
+    request_log = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "api_request"
+    )
+    assert request_log.request_id == response.headers["x-request-id"]
+    assert request_log.status_code == 500
+    assert request_log.outcome == "error"
+    assert isinstance(request_log.duration_ms, float)
+    assert "C:\\private\\models\\secret" not in caplog.text
+    assert "Traceback" not in caplog.text

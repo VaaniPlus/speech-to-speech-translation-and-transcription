@@ -1,6 +1,7 @@
 """Speech translation API success and failure tests with fake providers."""
 
 from io import BytesIO
+import json
 import logging
 import time
 from urllib.parse import unquote
@@ -70,6 +71,7 @@ def test_speech_translate_returns_audio_file_and_encoded_metadata(
     target_language: str,
     transcript: str,
     translated: str,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     events: list[tuple[object, ...]] = []
     stt_provider = FakeSTTProvider(events)
@@ -81,12 +83,13 @@ def test_speech_translate_returns_audio_file_and_encoded_metadata(
     )
 
     source_audio = wav_bytes()
-    with TestClient(app) as client:
-        response = client.post(
-            "/api/speech-translate",
-            files={"file": ("../../client.wav", source_audio, "audio/wav")},
-            data={"direction": direction},
-        )
+    with caplog.at_level(logging.INFO):
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/speech-translate",
+                files={"file": ("../../client.wav", source_audio, "audio/wav")},
+                data={"direction": direction},
+            )
 
     assert response.status_code == 200
     assert response.headers["content-type"] == "audio/wav"
@@ -108,6 +111,33 @@ def test_speech_translate_returns_audio_file_and_encoded_metadata(
         ("translation", direction, transcript),
         ("tts", target_language, translated),
     ]
+    stage_events = {
+        record.stage: record
+        for record in caplog.records
+        if getattr(record, "event", None) == "stage_result"
+    }
+    assert set(stage_events) == {"stt", "translation", "tts"}
+    for record in stage_events.values():
+        assert record.outcome == "success"
+        assert record.request_id == response.headers["x-request-id"]
+        assert isinstance(record.duration_ms, float)
+    json_stage_events = [
+        json.loads(line)
+        for line in caplog.text.splitlines()
+        if '"event":"stage_result"' in line
+    ]
+    assert {entry["stage"] for entry in json_stage_events} == {
+        "stt",
+        "translation",
+        "tts",
+    }
+    assert all(
+        entry["request_id"] == response.headers["x-request-id"]
+        and isinstance(entry["duration_ms"], float)
+        for entry in json_stage_events
+    )
+    assert transcript not in caplog.text
+    assert translated not in caplog.text
 
 
 def test_speech_translate_documents_multipart_binary_response_and_errors() -> None:
@@ -293,7 +323,15 @@ def test_speech_translate_reports_failed_provider_stage_without_details(
     assert response.json()["code"] == code
     assert response.json()["stage"] == stage
     assert response.json()["request_id"] == response.headers["x-request-id"]
-    assert f"request_id={response.headers['x-request-id']}" in caplog.text
+    failed_stage_log = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "stage_result"
+        and getattr(record, "stage", None) == stage
+    )
+    assert failed_stage_log.request_id == response.headers["x-request-id"]
+    assert failed_stage_log.outcome == "provider_error"
+    assert private not in caplog.text
     assert private not in response.text
 
 
@@ -362,9 +400,15 @@ def test_speech_translate_times_out_provider_stages_with_request_id(
         "stage": stage,
         "request_id": response.headers["x-request-id"],
     }
-    assert f"request_id={response.headers['x-request-id']}" in caplog.text
-    assert f"stage={stage}" in caplog.text
-    assert "outcome=timeout" in caplog.text
+    timeout_log = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "stage_result"
+        and getattr(record, "stage", None) == stage
+    )
+    assert timeout_log.request_id == response.headers["x-request-id"]
+    assert timeout_log.outcome == "timeout"
+    assert isinstance(timeout_log.duration_ms, float)
 
 
 def test_speech_translate_reports_missing_tts_provider() -> None:
