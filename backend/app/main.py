@@ -1,6 +1,7 @@
 """FastAPI application entry point."""
 
 import logging
+import time
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 from uuid import uuid4
@@ -15,7 +16,12 @@ from starlette.responses import Response
 
 from app.api.routes import router
 from app.core.config import Settings, get_settings
-from app.core.logging_config import configure_logging
+from app.core.logging_config import (
+    configure_logging,
+    log_event,
+    reset_request_id,
+    set_request_id,
+)
 from app.providers.fake import (
     FakeSTTProvider,
     FakeTranslationProvider,
@@ -69,9 +75,37 @@ def create_app(
     ) -> Response:
         request_id = uuid4().hex
         request.state.request_id = request_id
-        response = await call_next(request)
-        response.headers["X-Request-ID"] = request_id
-        return response
+        token = set_request_id(request_id)
+        started_at = time.perf_counter()
+        try:
+            response = await call_next(request)
+            response.headers["X-Request-ID"] = request_id
+            log_event(
+                logger,
+                logging.INFO if response.status_code < 400 else logging.WARNING,
+                "api_request",
+                method=request.method,
+                path=request.url.path,
+                status_code=response.status_code,
+                outcome="success" if response.status_code < 400 else "error",
+                duration_ms=round((time.perf_counter() - started_at) * 1000, 3),
+            )
+            return response
+        except Exception:
+            log_event(
+                logger,
+                logging.ERROR,
+                "api_request",
+                request_id=request_id,
+                method=request.method,
+                path=request.url.path,
+                status_code=500,
+                outcome="error",
+                duration_ms=round((time.perf_counter() - started_at) * 1000, 3),
+            )
+            raise
+        finally:
+            reset_request_id(token)
 
     application.add_middleware(
         CORSMiddleware,
@@ -129,14 +163,15 @@ def create_app(
         request_id = request.state.request_id
         if error is not None:
             outcome = "timeout" if code.endswith("_timeout") else "provider_error"
-            logger.warning(
-                "request_failed request_id=%s outcome=%s stage=%s code=%s "
-                "error_type=%s",
-                request_id,
-                outcome,
-                stage,
-                code,
-                type(error).__name__,
+            log_event(
+                logger,
+                logging.WARNING,
+                "request_failed",
+                request_id=request_id,
+                outcome=outcome,
+                stage=stage,
+                error_code=code,
+                error_type=type(error).__name__,
             )
         response_headers = {"X-Request-ID": request_id}
         if headers is not None:
@@ -188,10 +223,15 @@ def create_app(
     async def handle_unexpected_error(
         request: Request, error: Exception
     ) -> JSONResponse:
-        logger.exception(
-            "request_failed request_id=%s outcome=unexpected_error stage=unknown",
-            request.state.request_id,
-            exc_info=(type(error), error, error.__traceback__),
+        log_event(
+            logger,
+            logging.ERROR,
+            "request_failed",
+            request_id=request.state.request_id,
+            outcome="unexpected_error",
+            stage="unknown",
+            error_code="internal_error",
+            error_type=type(error).__name__,
         )
         return error_response(
             request,

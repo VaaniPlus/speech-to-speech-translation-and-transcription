@@ -216,5 +216,12 @@ def test_translate_endpoint_reports_provider_timeout_with_request_id(
     assert response.json()["code"] == "translation_timeout"
     assert response.json()["stage"] == "translation"
     assert response.json()["request_id"] == response.headers["x-request-id"]
-    assert "outcome=timeout" in caplog.text
-    assert f"request_id={response.headers['x-request-id']}" in caplog.text
+    stage_event = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "stage_result"
+        and getattr(record, "stage", None) == "translation"
+    )
+    assert stage_event.outcome == "timeout"
+    assert stage_event.request_id == response.headers["x-request-id"]
+    assert isinstance(stage_event.duration_ms, float)

@@ -89,6 +89,18 @@ deterministic fake providers, so the API and UI can be developed without a
 GPU, network download, or real model package. Real-provider mode is intended
 only after its model adapter is configured and dependencies are installed.
 
+### Local logs
+
+The API writes one JSON log event per line to standard error, visible in the
+terminal where Uvicorn is running. Events include request IDs and separate
+STT, translation, and TTS durations and outcomes. Raw audio and full transcript
+or translation text are not logged by default. To retain logs locally in
+PowerShell, redirect standard error to an ignored file:
+
+```powershell
+python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 2> .\vaani-api.log
+```
+
 ### Open the browser UI
 
 Open [frontend/index.html](frontend/index.html) in a desktop browser while the
