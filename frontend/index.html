@@ -72,13 +72,13 @@
                   </span>
                 </div>
                 <div class="recording-actions">
-                  <button class="icon-button record-button" id="record-button" type="button"
+                  <button class="icon-button labeled-icon-button record-button" id="record-button" type="button"
                     aria-label="Start microphone recording" title="Start microphone recording">
-                    <span aria-hidden="true">●</span>
+                    <span aria-hidden="true">●</span><span>Start</span>
                   </button>
-                  <button class="icon-button stop-button" id="stop-button" type="button" disabled
+                  <button class="icon-button labeled-icon-button stop-button" id="stop-button" type="button" disabled
                     aria-label="Stop microphone recording" title="No recording is in progress">
-                    <span aria-hidden="true">■</span>
+                    <span aria-hidden="true">■</span><span>Stop</span>
                   </button>
                 </div>
               </div>
@@ -92,7 +92,7 @@
 
               <div class="or-divider"><span>OR TYPE INSTEAD</span></div>
 
-              <label class="visually-hidden" for="source-text">Text to translate</label>
+              <label class="field-label" for="source-text">MESSAGE TO TRANSLATE</label>
               <textarea id="source-text" name="source-text" rows="5" maxlength="1000"
                 placeholder="Type something in English…" aria-describedby="input-hint"></textarea>
               <div class="input-footer">
@@ -152,13 +152,15 @@
                   </span>
                 </div>
                 <div class="audio-controls" role="group" aria-label="Translated audio controls">
-                  <button class="icon-button play-button" id="audio-toggle-button" type="button"
+                  <button class="icon-button labeled-icon-button play-button" id="audio-toggle-button" type="button"
                     disabled aria-label="Play translated audio" title="No translated audio is available">
                     <span aria-hidden="true">▶</span>
+                    <span id="audio-toggle-label">Play</span>
                   </button>
-                  <button class="icon-button replay-button" id="audio-replay-button" type="button"
+                  <button class="icon-button labeled-icon-button replay-button" id="audio-replay-button" type="button"
                     disabled aria-label="Replay translated audio" title="No translated audio is available">
                     <span aria-hidden="true">↻</span>
+                    <span>Replay</span>
                   </button>
                 </div>
                 <audio id="translated-audio" preload="none" hidden></audio>
@@ -166,8 +168,9 @@
             </section>
           </div>
 
-          <div class="workspace-footnote" id="workspace-status" role="status" aria-live="polite">
-            <span class="footnote-icon" aria-hidden="true">i</span>
+          <div class="workspace-footnote" id="workspace-status" data-state="info"
+            role="status" aria-live="polite">
+            <span class="footnote-icon" id="workspace-status-icon" aria-hidden="true">i</span>
             <span id="workspace-status-text">Typed translation is ready. Start recording to grant microphone access.</span>
           </div>
         </section>

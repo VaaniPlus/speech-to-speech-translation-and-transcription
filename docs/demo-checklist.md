@@ -87,7 +87,16 @@ real model weights is a separate manual verification and must be labeled as such
   in test configuration.
 - [ ] Errors do not expose Python tracebacks or private local paths.
 - [ ] All controls have visible labels and keyboard focus is usable.
-- [ ] Loading, success, and error states are visually distinguishable.
+- [ ] Use Tab and Shift+Tab to reach the direction selector, recording and
+  translation actions, text field, Reset, and audio controls; verify the focus
+  indicator is visible and the focused action can be activated with Enter or
+  Space.
+- [ ] Verify loading, success, recording, and error states use different
+  visual treatments and are announced by the status area.
+- [ ] Verify the source transcript and translation remain in separate labeled
+  result blocks.
+- [ ] At desktop and tablet widths, verify the workspace is readable without
+  squeezed controls or horizontal scrolling.
 - [ ] Fast repeated submissions do not overwrite an earlier or later result.
 
 ## Instructor-facing review
