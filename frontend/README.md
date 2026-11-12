@@ -22,3 +22,7 @@ errors, and stop audio playback. Submitting while another request is active is
 guarded against duplicates. Fetch requests are aborted where the browser's
 `AbortController` supports it; request IDs also prevent late responses from
 replacing newer or reset results.
+
+Controls have visible text labels and keyboard focus indicators. Loading,
+success, recording, and error messages are announced in the workspace status
+area and use distinct visual treatments.

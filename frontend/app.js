@@ -15,6 +15,7 @@ const sourceOutput = document.querySelector("#source-output");
 const translatedOutput = document.querySelector("#translated-output");
 const workspaceStatus = document.querySelector("#workspace-status");
 const workspaceStatusText = document.querySelector("#workspace-status-text");
+const workspaceStatusIcon = document.querySelector("#workspace-status-icon");
 const recordButton = document.querySelector("#record-button");
 const stopButton = document.querySelector("#stop-button");
 const recordingStatus = document.querySelector("#recording-status");
@@ -23,6 +24,7 @@ const speechSubmitButton = document.querySelector("#speech-submit-button");
 const speechSubmitLabel = document.querySelector("#speech-submit-label");
 const audioStatus = document.querySelector("#audio-status");
 const audioToggleButton = document.querySelector("#audio-toggle-button");
+const audioToggleLabel = document.querySelector("#audio-toggle-label");
 const audioReplayButton = document.querySelector("#audio-replay-button");
 const translatedAudio = document.querySelector("#translated-audio");
 const resetButton = document.querySelector("#reset-button");
@@ -288,6 +290,8 @@ function updateInput() {
 function setStatus(message, state = "info") {
   workspaceStatusText.textContent = message;
   workspaceStatus.dataset.state = state;
+  workspaceStatusIcon.textContent =
+    { loading: "…", success: "✓", error: "!", recording: "●" }[state] || "i";
 }
 
 function updateAudioControls() {
@@ -299,6 +303,7 @@ function updateAudioControls() {
     isPlaying ? "Pause translated audio" : "Play translated audio",
   );
   audioToggleButton.title = isPlaying ? "Pause translated audio" : "Play translated audio";
+  audioToggleLabel.textContent = isPlaying ? "Pause" : "Play";
   audioToggleButton.querySelector("span").textContent = isPlaying ? "Ⅱ" : "▶";
   audioReplayButton.disabled = !hasAudio;
   audioReplayButton.title = hasAudio
