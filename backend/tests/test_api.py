@@ -1,5 +1,7 @@
 """API route registration tests."""
 
+import time
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -23,6 +25,13 @@ class FailingTranslationProvider:
         raise TranslationProviderError("internal provider details")
 
 
+class SlowTranslationProvider:
+    def translate(self, source_text: str, direction: TranslationDirection) -> str:
+        del source_text, direction
+        time.sleep(0.2)
+        return "नमस्ते"
+
+
 def test_health_endpoint_is_documented_in_openapi() -> None:
     app = create_app(Settings(_env_file=None))
 
@@ -40,9 +49,12 @@ def test_health_endpoint_is_documented_in_openapi() -> None:
     assert operation["responses"]["200"]["content"]["application/json"]["schema"][
         "$ref"
     ].endswith("/TranslationResponse")
+    assert "X-Request-ID" in operation["responses"]["200"]["headers"]
     assert "422" in operation["responses"]
+    assert "500" in operation["responses"]
     assert "502" in operation["responses"]
     assert "503" in operation["responses"]
+    assert "504" in operation["responses"]
 
 
 @pytest.mark.parametrize(
@@ -97,9 +109,10 @@ def test_translate_endpoint_returns_useful_422_for_empty_text(
         )
 
     assert response.status_code == 422
-    detail = response.json()["detail"]
-    assert detail[0]["loc"] == ["body", "source_text"]
-    assert "at least 1 character" in detail[0]["msg"]
+    assert response.json()["code"] == "request_validation_failed"
+    assert response.json()["message"] == "Request validation failed."
+    assert response.json()["stage"] == "validation"
+    assert response.json()["request_id"] == response.headers["x-request-id"]
 
 
 def test_translate_endpoint_rejects_unsupported_direction() -> None:
@@ -115,7 +128,9 @@ def test_translate_endpoint_rejects_unsupported_direction() -> None:
         )
 
     assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"] == ["body", "direction"]
+    assert response.json()["code"] == "request_validation_failed"
+    assert response.json()["stage"] == "validation"
+    assert response.json()["request_id"] == response.headers["x-request-id"]
 
 
 def test_translate_endpoint_reports_unconfigured_provider_safely() -> None:
@@ -134,6 +149,7 @@ def test_translate_endpoint_reports_unconfigured_provider_safely() -> None:
         "code": "translation_provider_unavailable",
         "message": "Translation is not available because no provider is configured.",
         "stage": "translation",
+        "request_id": response.headers["x-request-id"],
     }
 
 
@@ -152,6 +168,7 @@ def test_translate_endpoint_reports_real_provider_load_failure_safely() -> None:
         "code": "translation_failed",
         "message": "Translation could not be completed.",
         "stage": "translation",
+        "request_id": response.headers["x-request-id"],
     }
 
 
@@ -173,5 +190,31 @@ def test_translate_endpoint_reports_provider_failure_without_internal_details() 
         "code": "translation_failed",
         "message": "Translation could not be completed.",
         "stage": "translation",
+        "request_id": response.headers["x-request-id"],
     }
     assert "internal provider details" not in response.text
+
+
+def test_translate_endpoint_reports_provider_timeout_with_request_id(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    app = create_app(
+        Settings(
+            _env_file=None,
+            provider_timeout_seconds=0.1,
+        ),
+        translation_provider=SlowTranslationProvider(),
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/translate",
+            json={"direction": "en-to-hi", "source_text": "Hello"},
+        )
+
+    assert response.status_code == 504
+    assert response.json()["code"] == "translation_timeout"
+    assert response.json()["stage"] == "translation"
+    assert response.json()["request_id"] == response.headers["x-request-id"]
+    assert "outcome=timeout" in caplog.text
+    assert f"request_id={response.headers['x-request-id']}" in caplog.text

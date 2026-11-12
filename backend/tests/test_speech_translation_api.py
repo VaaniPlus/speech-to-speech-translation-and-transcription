@@ -1,6 +1,8 @@
 """Speech translation API success and failure tests with fake providers."""
 
 from io import BytesIO
+import logging
+import time
 from urllib.parse import unquote
 import wave
 
@@ -97,6 +99,7 @@ def test_speech_translate_returns_audio_file_and_encoded_metadata(
     assert response.headers["x-source-language"] == source_language
     assert response.headers["x-target-language"] == target_language
     assert response.headers["x-translation-direction"] == direction
+    assert response.headers["x-request-id"]
     assert stt_provider.audio_inputs == [
         AudioInput(data=source_audio, content_type="audio/wav")
     ]
@@ -131,7 +134,8 @@ def test_speech_translate_documents_multipart_binary_response_and_errors() -> No
     }
     assert "X-Transcript" in success["headers"]
     assert "X-Translated-Text" in success["headers"]
-    for status in ("413", "415", "422", "502", "503"):
+    assert "X-Request-ID" in success["headers"]
+    for status in ("413", "415", "422", "500", "502", "503", "504"):
         assert status in operation["responses"]
 
 
@@ -199,6 +203,27 @@ class FailingTTSProvider:
         raise TTSProviderError("private TTS model details")
 
 
+class SlowSTTProvider:
+    def transcribe(self, audio, language=None) -> STTResult:
+        del audio
+        time.sleep(0.5)
+        return STTResult(transcript="Hello there.", language=language)
+
+
+class SlowTranslationProvider:
+    def translate(self, source_text: str, direction: str) -> str:
+        del source_text, direction
+        time.sleep(0.5)
+        return "नमस्कार"
+
+
+class SlowTTSProvider:
+    def synthesize(self, text: str, target_language: str) -> TTSResult:
+        del text, target_language
+        time.sleep(0.5)
+        return TTSResult(audio_bytes=b"generated-audio", content_type="audio/wav")
+
+
 @pytest.mark.parametrize(
     (
         "stt_provider",
@@ -247,6 +272,7 @@ def test_speech_translate_reports_failed_provider_stage_without_details(
     code: str,
     stage: str,
     private: str,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     app = create_app(
         Settings(_env_file=None, provider_mode="mock"),
@@ -255,17 +281,90 @@ def test_speech_translate_reports_failed_provider_stage_without_details(
         tts_provider=tts_provider,
     )
 
-    with TestClient(app) as client:
-        response = client.post(
-            "/api/speech-translate",
-            files={"file": ("speech.wav", wav_bytes(), "audio/wav")},
-            data={"direction": "en-to-hi"},
-        )
+    with caplog.at_level(logging.WARNING, logger="app.main"):
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/speech-translate",
+                files={"file": ("speech.wav", wav_bytes(), "audio/wav")},
+                data={"direction": "en-to-hi"},
+            )
 
     assert response.status_code == status
     assert response.json()["code"] == code
     assert response.json()["stage"] == stage
+    assert response.json()["request_id"] == response.headers["x-request-id"]
+    assert f"request_id={response.headers['x-request-id']}" in caplog.text
     assert private not in response.text
+
+
+@pytest.mark.parametrize(
+    ("stage", "stt_provider", "translation_provider", "tts_provider", "code"),
+    [
+        (
+            "stt",
+            SlowSTTProvider(),
+            FakeTranslationProvider([]),
+            FakeTTSProvider([]),
+            "stt_timeout",
+        ),
+        (
+            "translation",
+            FakeSTTProvider([]),
+            SlowTranslationProvider(),
+            FakeTTSProvider([]),
+            "translation_timeout",
+        ),
+        (
+            "tts",
+            FakeSTTProvider([]),
+            FakeTranslationProvider([]),
+            SlowTTSProvider(),
+            "tts_timeout",
+        ),
+    ],
+)
+def test_speech_translate_times_out_provider_stages_with_request_id(
+    stage: str,
+    stt_provider,
+    translation_provider,
+    tts_provider,
+    code: str,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    app = create_app(
+        Settings(
+            _env_file=None,
+            provider_mode="mock",
+            provider_timeout_seconds=0.1,
+        ),
+        stt_provider=stt_provider,
+        translation_provider=translation_provider,
+        tts_provider=tts_provider,
+    )
+
+    with caplog.at_level(logging.WARNING, logger="app.main"):
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/speech-translate",
+                files={"file": ("speech.wav", wav_bytes(), "audio/wav")},
+                data={"direction": "en-to-hi"},
+            )
+
+    assert response.status_code == 504
+    assert response.json() == {
+        "status": "error",
+        "code": code,
+        "message": {
+            "stt": "Speech transcription timed out.",
+            "translation": "Translation timed out.",
+            "tts": "Speech synthesis timed out.",
+        }[stage],
+        "stage": stage,
+        "request_id": response.headers["x-request-id"],
+    }
+    assert f"request_id={response.headers['x-request-id']}" in caplog.text
+    assert f"stage={stage}" in caplog.text
+    assert "outcome=timeout" in caplog.text
 
 
 def test_speech_translate_reports_missing_tts_provider() -> None:

@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     device: Device = "auto"
     stt_compute_type: ComputeType = "auto"
     max_upload_size_bytes: int = Field(default=25 * 1024 * 1024, gt=0)
+    provider_timeout_seconds: float = Field(default=120.0, gt=0)
     provider_mode: ProviderMode = Field(
         default="mock",
         description="Development mode; real provider adapters are not loaded in mock mode.",

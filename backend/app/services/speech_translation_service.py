@@ -5,8 +5,6 @@ import logging
 from pathlib import Path
 import time
 
-from starlette.concurrency import run_in_threadpool
-
 from app.providers.stt import AudioInput, LanguageCode, STTProvider
 from app.providers.translation import TranslationProvider
 from app.providers.tts import (
@@ -16,6 +14,7 @@ from app.providers.tts import (
     TTSResult,
 )
 from app.schemas.translation import (
+    ErrorStage,
     LANGUAGES_BY_DIRECTION,
     TranslationDirection,
     TranslationRequest,
@@ -28,6 +27,7 @@ from app.services.translation_service import (
     TranslationServiceError,
     translate_text,
 )
+from app.services.provider_execution import ProviderCallTimeout, run_provider_call
 from app.utils.audio import CONTENT_TYPE_SUFFIXES
 
 logger = logging.getLogger(__name__)
@@ -42,13 +42,13 @@ class SpeechTranslationServiceError(Exception):
         status_code: int,
         code: str,
         message: str,
-        stage: str,
+        stage: ErrorStage,
     ) -> None:
         super().__init__(message)
         self.status_code = status_code
         self.code = code
         self.message = message
-        self.stage = stage
+        self.stage: ErrorStage = stage
 
 
 class SpeechTranslationProviderUnavailable(SpeechTranslationServiceError):
@@ -139,13 +139,19 @@ async def translate_speech(
     stt_provider: STTProvider | None,
     translation_provider: TranslationProvider | None,
     tts_provider: TTSProvider | None,
+    timeout_seconds: float = 120.0,
 ) -> SpeechTranslationResult:
     """Transcribe, translate, and synthesize audio for the selected direction."""
     started_at = time.perf_counter()
     source_language, target_language = LANGUAGES_BY_DIRECTION[direction]
 
     try:
-        transcription = await transcribe_audio(audio, source_language, stt_provider)
+        transcription = await transcribe_audio(
+            audio,
+            source_language,
+            stt_provider,
+            timeout_seconds,
+        )
     except SpeechToTextServiceError as error:
         raise SpeechTranslationFailed(
             status_code=error.status_code,
@@ -164,6 +170,7 @@ async def translate_speech(
                 source_text=transcription.transcript,
             ),
             translation_provider,
+            timeout_seconds,
         )
     except TranslationServiceError as error:
         raise SpeechTranslationFailed(
@@ -178,12 +185,25 @@ async def translate_speech(
         raise SpeechTranslationProviderUnavailable
 
     try:
-        tts_result = await run_in_threadpool(
-            tts_provider.synthesize,
-            translation.translated_text,
-            target_language,
+        tts_result = await run_provider_call(
+            lambda: tts_provider.synthesize(
+                translation.translated_text,
+                target_language,
+            ),
+            timeout_seconds,
         )
         generated_audio, content_type = _normalize_audio_result(tts_result)
+    except ProviderCallTimeout as error:
+        logger.warning(
+            "speech_translation outcome=timeout stage=tts timeout_seconds=%.3f",
+            timeout_seconds,
+        )
+        raise SpeechTranslationFailed(
+            status_code=504,
+            code="tts_timeout",
+            message="Speech synthesis timed out.",
+            stage="tts",
+        ) from error
     except SpeechTranslationServiceError:
         raise
     except TTSProviderError as error:

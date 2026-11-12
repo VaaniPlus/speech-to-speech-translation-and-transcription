@@ -68,8 +68,9 @@ Copy-Item .env.example .env
 
 Configuration includes the API host and port, provider mode, model IDs, cache
 directory, device, compute type, log level, and maximum upload size. `.env` is
-git-ignored. Invalid settings are reported with the setting name at startup.
-See [.env.example](.env.example) for all available variables.
+git-ignored. `PROVIDER_TIMEOUT_SECONDS` sets the per-provider-call deadline
+(default: 120 seconds). Invalid settings are reported with the setting name at
+startup. See [.env.example](.env.example) for all available variables.
 
 ### Start the API
 

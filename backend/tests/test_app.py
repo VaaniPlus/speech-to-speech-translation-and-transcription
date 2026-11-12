@@ -1,5 +1,7 @@
 """Tests for FastAPI application initialization."""
 
+import logging
+
 from fastapi.testclient import TestClient
 import pytest
 
@@ -56,6 +58,8 @@ def test_app_allows_local_browser_origins_and_exposes_speech_metadata(
     assert metadata_response.headers["access-control-allow-origin"] == origin
     assert "X-Transcript" in metadata_response.headers["access-control-expose-headers"]
     assert "X-Translated-Text" in metadata_response.headers["access-control-expose-headers"]
+    assert "X-Request-ID" in metadata_response.headers["access-control-expose-headers"]
+    assert metadata_response.headers["x-request-id"]
 
 
 def test_app_does_not_allow_arbitrary_browser_origins() -> None:
@@ -69,3 +73,29 @@ def test_app_does_not_allow_arbitrary_browser_origins() -> None:
 
     assert response.status_code == 200
     assert "access-control-allow-origin" not in response.headers
+
+
+def test_unexpected_error_returns_safe_correlated_response(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    app = create_app(Settings(_env_file=None))
+
+    def fail() -> None:
+        raise RuntimeError("C:\\private\\models\\secret")
+
+    app.add_api_route("/test-error", fail)
+
+    with caplog.at_level(logging.ERROR, logger="app.main"):
+        with TestClient(app, raise_server_exceptions=False) as client:
+            response = client.get("/test-error")
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "status": "error",
+        "code": "internal_error",
+        "message": "The request could not be completed.",
+        "stage": "unknown",
+        "request_id": response.headers["x-request-id"],
+    }
+    assert "C:\\private\\models\\secret" not in response.text
+    assert f"request_id={response.headers['x-request-id']}" in caplog.text

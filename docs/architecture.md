@@ -171,6 +171,14 @@ Provider and application errors are classified before they reach HTTP handlers:
 - unexpected failure: safe 5xx response with a request correlation ID, while
   the server logs operational details.
 
+All JSON errors use the stable `ErrorResponse` schema, including a request ID
+that also appears in the `X-Request-ID` response header. The configured
+`PROVIDER_TIMEOUT_SECONDS` deadline applies to each synchronous model-provider
+call. A timed-out wait returns a stage-specific HTTP 504 response; the
+underlying Python worker thread cannot be forcibly stopped and may finish in
+the background. Timeout and provider error logs include the request ID, stage,
+stable error code, and exception type.
+
 Route responses must not expose Python tracebacks, model package exceptions,
 or machine-specific paths. Raw audio and full transcript text are not logged by
 default.

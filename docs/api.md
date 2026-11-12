@@ -27,6 +27,10 @@ it in the selected direction. A translation provider must be configured
 when the application is created; the API does not silently return fake
 or identity translations when no provider is available.
 
+Each synchronous model-provider call is limited by
+`PROVIDER_TIMEOUT_SECONDS` (default: 120 seconds). A timed-out provider returns
+HTTP 504 with a stable error code and stage.
+
 ### Translation request
 
 The request accepts only `en-to-hi` or `hi-to-en`. The `source_text`
@@ -63,7 +67,7 @@ selected direction.
 ### Errors
 
 Empty/whitespace-only text and unsupported directions return HTTP 422
-with FastAPI field-validation details. If no translation provider is
+with the stable `ErrorResponse` shape. If no translation provider is
 configured, the endpoint returns HTTP 503. A configured provider failure
 returns HTTP 502. A missing provider returns HTTP 503 instead of a fake
 translation. These provider errors use the stable `ErrorResponse` shape
@@ -74,7 +78,8 @@ with a safe message and the `translation` stage.
   "status": "error",
   "code": "translation_failed",
   "message": "Translation could not be completed.",
-  "stage": "translation"
+  "stage": "translation",
+  "request_id": "0123456789abcdef0123456789abcdef"
 }
 ```
 
@@ -83,9 +88,28 @@ with a safe message and the `translation` stage.
   "status": "error",
   "code": "translation_provider_unavailable",
   "message": "Translation is not available because no provider is configured.",
-  "stage": "translation"
+  "stage": "translation",
+  "request_id": "0123456789abcdef0123456789abcdef"
 }
 ```
+
+Timeouts use HTTP 504; for example:
+
+```json
+{
+  "status": "error",
+  "code": "translation_timeout",
+  "message": "Translation timed out.",
+  "stage": "translation",
+  "request_id": "0123456789abcdef0123456789abcdef"
+}
+```
+
+Every response emitted by an API endpoint includes the same correlation ID in
+the `X-Request-ID` header.
+Provider errors and timeouts are logged with that ID, stage, stable error code,
+and exception type; provider exception messages and local paths are not
+returned.
 
 ## Speech-to-text
 
@@ -117,8 +141,8 @@ The configured maximum upload size is enforced. Empty or malformed audio
 returns HTTP 422, unsupported media returns HTTP 415, and oversized audio
 returns HTTP 413. These errors use the stable `ErrorResponse` shape with the
 `validation` stage. A missing STT provider returns HTTP 503; STT failures return
-HTTP 502 with the `stt` stage and a client-safe message. Client filenames are
-not used as filesystem paths.
+HTTP 502 and timeouts return HTTP 504 with the `stt` stage and a client-safe
+message. Client filenames are not used as filesystem paths.
 
 ## Speech-to-speech translation
 
@@ -151,6 +175,7 @@ Clients should URL-decode those two values as UTF-8.
 | `X-Source-Language` | `en` or `hi` |
 | `X-Target-Language` | `hi` or `en` |
 | `X-Translation-Direction` | `en-to-hi` or `hi-to-en` |
+| `X-Request-ID` | Request correlation ID |
 | `Content-Disposition` | Attachment filename for the generated audio |
 
 This is a file response, not a JSON/binary multipart body. Browsers can create
@@ -158,9 +183,12 @@ a playable object URL from the response body and read the metadata headers.
 `Access-Control-Expose-Headers` is set for the metadata and file headers.
 The API allows browser requests from `file://` pages (`Origin: null`) and
 localhost/127.0.0.1 development origins, without enabling credentialed CORS.
+`X-Request-ID` is exposed to browser clients for correlation.
 
 Invalid direction or audio returns HTTP 4xx with the `validation` stage. A
 source-language mismatch returns HTTP 422 with stage `stt`. Provider failures
 return HTTP 502, and unavailable providers return HTTP 503; both use the stable
 `ErrorResponse` shape and identify the failed stage (`stt`, `translation`, or
-`tts`) without returning provider details or tracebacks.
+`tts`) without returning provider details or tracebacks. Provider timeouts
+return HTTP 504 with a stage-specific code. All API errors use the stable
+`ErrorResponse` schema and include their `X-Request-ID` correlation header.
