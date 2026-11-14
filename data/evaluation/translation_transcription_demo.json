@@ -1,0 +1,79 @@
+{
+  "name": "English-Hindi speech translation demo set",
+  "description": "Small, text-only illustrative set for manual regression checks; not a scientific benchmark.",
+  "review_status": "reviewed_by_competent_bilingual_speaker",
+  "cases": [
+    {
+      "id": "en-hi-01",
+      "direction": "en-to-hi",
+      "length": "short",
+      "tags": ["punctuation"],
+      "source_text": "Good morning.",
+      "expected_transcript": "Good morning.",
+      "expected_translation": "सुप्रभात।"
+    },
+    {
+      "id": "en-hi-02",
+      "direction": "en-to-hi",
+      "length": "short",
+      "tags": ["numbers", "common_name"],
+      "source_text": "Ravi has 3 books.",
+      "expected_transcript": "Ravi has 3 books.",
+      "expected_translation": "रवि के पास 3 किताबें हैं।"
+    },
+    {
+      "id": "en-hi-03",
+      "direction": "en-to-hi",
+      "length": "long",
+      "tags": ["punctuation", "numbers", "common_name"],
+      "source_text": "Please call Meera after the meeting, but before 6:30 p.m.",
+      "expected_transcript": "Please call Meera after the meeting, but before 6:30 p.m.",
+      "expected_translation": "कृपया बैठक के बाद, लेकिन शाम 6:30 बजे से पहले, मीरा को फ़ोन करें।"
+    },
+    {
+      "id": "en-hi-04",
+      "direction": "en-to-hi",
+      "length": "long",
+      "tags": ["punctuation", "numbers", "common_name"],
+      "source_text": "Asha and Kabir will take the 8:15 train to Jaipur on Friday; they need two tickets.",
+      "expected_transcript": "Asha and Kabir will take the 8:15 train to Jaipur on Friday; they need two tickets.",
+      "expected_translation": "आशा और कबीर शुक्रवार को 8:15 की ट्रेन से जयपुर जाएंगे; उन्हें दो टिकट चाहिए।"
+    },
+    {
+      "id": "hi-en-01",
+      "direction": "hi-to-en",
+      "length": "short",
+      "tags": ["punctuation"],
+      "source_text": "नमस्ते, आप कैसे हैं?",
+      "expected_transcript": "नमस्ते, आप कैसे हैं?",
+      "expected_translation": "Hello, how are you?"
+    },
+    {
+      "id": "hi-en-02",
+      "direction": "hi-to-en",
+      "length": "short",
+      "tags": ["numbers", "common_name"],
+      "source_text": "अमन के पास 5 आम हैं।",
+      "expected_transcript": "अमन के पास 5 आम हैं।",
+      "expected_translation": "Aman has 5 mangoes."
+    },
+    {
+      "id": "hi-en-03",
+      "direction": "hi-to-en",
+      "length": "long",
+      "tags": ["punctuation", "numbers", "common_name"],
+      "source_text": "कृपया नेहा को शाम 7:30 बजे फोन करें, मीटिंग के बाद।",
+      "expected_transcript": "कृपया नेहा को शाम 7:30 बजे फोन करें, मीटिंग के बाद।",
+      "expected_translation": "Please call Neha at 7:30 p.m., after the meeting."
+    },
+    {
+      "id": "hi-en-04",
+      "direction": "hi-to-en",
+      "length": "long",
+      "tags": ["punctuation", "numbers", "common_name"],
+      "source_text": "रोहन और सिया शनिवार को दिल्ली से आगरा जाएंगे; उनकी ट्रेन सुबह 9:15 बजे है और यात्रा लगभग तीन घंटे की होगी।",
+      "expected_transcript": "रोहन और सिया शनिवार को दिल्ली से आगरा जाएंगे; उनकी ट्रेन सुबह 9:15 बजे है और यात्रा लगभग तीन घंटे की होगी।",
+      "expected_translation": "Rohan and Siya will travel from Delhi to Agra on Saturday; their train is at 9:15 a.m., and the journey will take about three hours."
+    }
+  ]
+}
