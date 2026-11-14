@@ -9,8 +9,9 @@ provider output is not real speech and must not be recorded as a model result.
 ## Prerequisites
 
 - Python 3.11 and the repository virtual environment are set up.
-- A microphone and a supported browser are available. Serve the frontend on
-  `localhost` (or HTTPS) to permit browser microphone access.
+- A microphone and a supported browser are available. Serve the frontend at
+  `http://localhost:5500` or `http://127.0.0.1:5500`; these are the only
+  development CORS origins allowed by the API.
 - The Windows eSpeak NG runtime required by Kokoro is installed. See
   [TTS model setup](tts-model-selection.md#windows-installation) for the
   project-specific setup notes.

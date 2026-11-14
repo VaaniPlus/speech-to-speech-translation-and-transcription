@@ -11,18 +11,17 @@ must be labeled as such.
 - [ ] The backend starts successfully and API documentation is reachable.
 - [ ] The frontend loads on a supported desktop browser.
 - [ ] Automated tests run without model downloads or GPU access.
-- [ ] Browser is opened over `localhost` or HTTPS so microphone capture is
-  available.
+- [ ] Browser is opened at `http://localhost:5500` or
+  `http://127.0.0.1:5500`; direct `file://` access is not supported.
 - [ ] Microphone permission is reset before testing the permission flow.
 
 ## Core text pipeline
 
 ### Typed-text UI setup
 
-1. Start the mock backend from the repository root with
-   `python -m uvicorn backend.app.main:app --reload` (Windows users may need
-   to activate the virtual environment first).
-2. Serve the frontend from the repository root, for example with
+1. From the repository root, activate `.venv` and start the mock backend with
+   `python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000`.
+2. In another repository-root terminal, serve the frontend with
    `python -m http.server 5500 --directory frontend`, then open
    `http://localhost:5500`.
 3. Keep the browser developer tools Network panel open for API checks.
@@ -57,15 +56,17 @@ real model weights is a separate manual verification and must be labeled as such
 - [ ] Grant microphone permission and record a short English utterance.
 - [ ] Stop the recording, select **Translate recording**, and verify the
   `POST /api/speech-translate` request sends `en-to-hi`.
-- [ ] Verify progress, English transcript, Hindi
-  translation, and playable Hindi audio.
-- [ ] Use Play, Pause, and Replay and verify each translated-audio control
-  works after a successful response.
+- [ ] In mock mode, verify the placeholder transcript and translation appear
+  in the result blocks and the UI handles the non-playable mock audio without
+  claiming it is speech.
 - [ ] Grant/reset permission and record a short Hindi utterance.
 - [ ] Stop the recording, select **Translate recording**, and verify the
   `POST /api/speech-translate` request sends `hi-to-en`.
-- [ ] Verify progress, Hindi transcript, English
-  translation, and playable English audio.
+- [ ] Verify the placeholder transcript and translation appear in the result
+  blocks; do not expect playable audio in mock mode.
+- [ ] For playable synthesized speech and Play/Pause/Replay checks, run the
+  [optional real-model smoke test](model-smoke-test.md); do not apply these
+  checks to mock audio.
 - [ ] Replace a successful audio result with a new recording/result and verify
   playback stops and the previous audio resource is released.
 - [ ] Simulate an unsupported or failed audio response and verify a useful
