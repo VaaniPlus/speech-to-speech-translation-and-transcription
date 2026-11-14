@@ -103,16 +103,23 @@ python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 2>
 
 ### Open the browser UI
 
-Open [frontend/index.html](frontend/index.html) in a desktop browser while the
-API is running. The typed-text UI is connected to `POST /api/translate` for
-English → Hindi and Hindi → English requests; loading and error states are
-shown in the browser. Microphone capture starts only after selecting Start and
-granting browser permission. After stopping, select **Translate recording**
-to send the captured audio and selected direction to the local speech
-translation API. The source transcript and translated text are shown
-separately, and the generated target-language audio can be played from the
-result panel. Use **Reset** to clear the current input and result or cancel
-in-flight processing. Use HTTPS or localhost for microphone access.
+Serve the frontend locally and open it from a loopback origin:
+
+```powershell
+python -m http.server 5500 --directory frontend
+```
+
+Open <http://localhost:5500> in a desktop browser while the API is running.
+The typed-text UI is connected to `POST /api/translate` for English → Hindi and
+Hindi → English requests; loading and error states are shown in the browser.
+Microphone capture starts only after selecting Start and granting browser
+permission. After stopping, select **Translate recording** to send the captured
+audio and selected direction to the local speech translation API. The source
+transcript and translated text are shown separately, and the generated
+target-language audio can be played from the result panel. Use **Reset** to
+clear the current input and result or cancel in-flight processing. The
+supported loopback origins provide the secure context required for microphone
+access.
 
 ### Run tests
 

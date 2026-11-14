@@ -32,7 +32,10 @@ def test_app_lifespan_starts_and_shuts_down_without_loading_models() -> None:
 
 @pytest.mark.parametrize(
     "origin",
-    ["null", "http://127.0.0.1:5500", "http://localhost:3000"],
+    [
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
+    ],
 )
 def test_app_allows_local_browser_origins_and_exposes_speech_metadata(
     origin: str,
@@ -56,6 +59,7 @@ def test_app_allows_local_browser_origins_and_exposes_speech_metadata(
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == origin
     assert "POST" in response.headers["access-control-allow-methods"]
+    assert "access-control-allow-credentials" not in response.headers
     assert metadata_response.headers["access-control-allow-origin"] == origin
     assert "X-Transcript" in metadata_response.headers["access-control-expose-headers"]
     assert "X-Translated-Text" in metadata_response.headers["access-control-expose-headers"]
@@ -63,13 +67,25 @@ def test_app_allows_local_browser_origins_and_exposes_speech_metadata(
     assert metadata_response.headers["x-request-id"]
 
 
-def test_app_does_not_allow_arbitrary_browser_origins() -> None:
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "https://example.com",
+        "null",
+        "http://localhost:3000",
+        "https://localhost:5500",
+        "http://localhost.evil.example",
+        "http://127.0.0.1.evil.example",
+        "http://192.168.1.10:5500",
+    ],
+)
+def test_app_does_not_allow_arbitrary_browser_origins(origin: str) -> None:
     app = create_app(Settings(_env_file=None))
 
     with TestClient(app) as client:
         response = client.get(
             "/api/health",
-            headers={"Origin": "https://example.com"},
+            headers={"Origin": origin},
         )
 
     assert response.status_code == 200
