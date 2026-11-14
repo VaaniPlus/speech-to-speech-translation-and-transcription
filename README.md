@@ -133,6 +133,22 @@ The default suite uses fake providers and does not download model weights. See
 [testing](docs/testing.md) for the focused speech integration test and
 [optional real-model smoke test](docs/model-smoke-test.md).
 
+### Latest Windows acceptance run (2026-11-14)
+
+- `python -m pytest`: 129 passed, 1 skipped. The skip is the opt-in real
+  Faster-Whisper smoke test, which requires a recording and model inference.
+- Typed-text and speech workflows passed in both directions with mock
+  providers. Speech UI checks used synthetic WAV data; microphone denial was
+  simulated by rejecting the browser permission request.
+- Provider failure/timeout tests passed (8 targeted cases). Whitespace text
+  and empty audio were rejected; API health, Swagger, and OpenAPI returned
+  successfully.
+
+Physical microphone capture and real-model inference were not performed.
+Mock transcript, translation, and audio output are placeholders, so this run
+does not validate language or speech quality. See the
+[demo checklist](docs/demo-checklist.md).
+
 ## Project workflow
 
 Contributors should work on one short-lived branch per Scrum item, based on
