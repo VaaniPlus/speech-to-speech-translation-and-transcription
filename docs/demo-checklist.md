@@ -3,7 +3,8 @@
 Use this checklist for the S1 requirements review and later release demos.
 Run the product on a clean local checkout and record only observable pass/fail
 results. Mocked providers are valid for UI/API checks, but real-model outputs
-must be labeled as such.
+must be labeled as such. For a timed presenter walkthrough, see the
+[final demo script](final-demo-script.md).
 
 ## Pre-demo setup
 

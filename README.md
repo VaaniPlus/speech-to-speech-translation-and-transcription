@@ -9,7 +9,8 @@
 ![Language pair](https://img.shields.io/badge/Language-English%20%E2%86%94%20Hindi-4C8EDA)
 ![Local-first](https://img.shields.io/badge/Processing-Local--first-2E8B57)
 
-[Overview](#scope) · [User guide](frontend/README.md) · [How it works](docs/architecture.md) · [Setup](#getting-started) · [API docs](docs/api.md)
+[Overview](#scope) · [User guide](frontend/README.md) · [How it works](docs/architecture.md) · [Setup](#getting-started) · [API docs](docs/api.md) ·
+[Final demo](docs/final-demo-script.md) · [Handoff](docs/final-handoff.md)
 
 </div>
 
@@ -35,7 +36,9 @@ and approves that integration.
 - `frontend/` — browser UI, styles, and client-side interaction code.
 - `docs/` — requirements, architecture, API, testing, and demonstration
   guidance. See [requirements and acceptance tests](docs/requirements.md)
-  and [architecture and provider boundaries](docs/architecture.md).
+  and [architecture and provider boundaries](docs/architecture.md). The
+  [final demo script](docs/final-demo-script.md) and
+  [handoff](docs/final-handoff.md) record release readiness.
 - `scripts/` — local development and Windows setup helpers.
 - `IMPLEMENTATION.md` — the Scrum implementation contract and backlog
   for the full project.
