@@ -68,8 +68,8 @@ configuration directly.
 
 The service layer coordinates application behavior independently of FastAPI
 request objects. It maps the requested direction to source and target languages,
-orchestrates required stages, adds timing metadata, and converts provider
-failures into controlled domain errors.
+orchestrates required stages, records stage timings in structured logs, and
+converts provider failures into controlled domain errors.
 
 A text translation service is not responsible for audio capture. A speech
 orchestration service may call STT, translation, and TTS in sequence, but
@@ -91,11 +91,12 @@ Other accepted formats do not get duration checks without a decoder. Temporary
 STT files use generated names and MIME-derived extensions; client filenames are
 ignored and files are removed after inference.
 
-A real implementation can use the lazy `FasterWhisperSTTProvider`, which loads
-optional ML dependencies only when inference begins. Development and default
-automated tests use a fake implementation that has no network or model download
-side effects. The selected Windows candidate and isolated loading requirements are
-recorded in [STT model selection](stt-model-selection.md).
+In `PROVIDER_MODE=real`, the application uses the lazy
+`FasterWhisperSTTProvider`; it loads optional ML dependencies and model weights
+when inference begins. Development and default automated tests use
+`FakeSTTProvider`, which has no network or model-download side effects. The
+selected Windows candidate and isolated loading requirements are recorded in
+[STT model selection](stt-model-selection.md).
 
 #### Translation
 
@@ -104,14 +105,15 @@ plain translated text or a typed `TranslationResult` containing source/target
 language metadata. Direction-to-language mapping is centralized in configuration
 or a small policy type rather than in route handlers.
 
-The real implementation may use a verified English ↔ Hindi model. Development
-and tests use `FakeTranslationProvider`, which returns visibly prefixed mock
-output and must not be described as real translation. The provider boundary
-prevents route and service code from depending on a model package or model
-identifier. `PROVIDER_MODE=mock` also installs fake STT and TTS providers with
-no network or model-download side effects; `PROVIDER_MODE=real` disables them.
-The preferred directional IndicTrans2 checkpoints, official sources, language
-codes, Windows setup, and measured/manual verification status are recorded in
+In `PROVIDER_MODE=real`, the application uses
+`IndicTrans2TranslationProvider` with separate English-to-Hindi and
+Hindi-to-English checkpoints. Development and tests use
+`FakeTranslationProvider`, which returns visibly prefixed mock output and must
+not be described as real translation. The provider boundary prevents route and
+service code from depending on a model package or model identifier.
+`PROVIDER_MODE=mock` also installs fake STT and TTS providers with no network or
+model-download side effects. The configured IndicTrans2 checkpoints, official
+sources, language codes, Windows setup, and verification notes are recorded in
 [translation model selection](translation-model-selection.md).
 
 #### Text-to-speech
@@ -120,9 +122,12 @@ codes, Windows setup, and measured/manual verification status are recorded in
 a typed `TTSResult` with format/content metadata, or a `ManagedAudioArtifact`.
 Empty text, unsupported language, and synthesis failures are represented explicitly.
 
-A real implementation must be a separately verified local Windows-compatible
-provider. Tests use a fake provider and do not claim that generated mock audio
-represents real speech quality.
+In `PROVIDER_MODE=real`, the application uses `KokoroTTSProvider` with the
+configured English and Hindi model IDs. The current adapter runs on CPU.
+Development and tests use `FakeTTSProvider`; its placeholder bytes are not
+playable speech and must not be presented as synthesized speech or quality
+evidence. The selected voices, Windows requirements, and quality limitations
+are recorded in [TTS model selection](tts-model-selection.md).
 
 ## Request and response flow
 
@@ -135,7 +140,8 @@ Browser
   → translation service
   → translation provider
   → stable JSON response
-  ← source text, translated text, direction, status, timing
+  ← source text, translated text, direction, status
+  ↳ stage timings recorded in logs
 ```
 
 ### Speech translation
@@ -194,21 +200,22 @@ retain logs locally, redirect standard error to a file such as
 ## Asynchronous execution and local resources
 
 Provider inference must not execute blocking model calls directly on the FastAPI
-event loop. The implementation uses a worker thread/process or a suitable async
-integration. Provider lifecycle, model loading, and optional model downloads
-must be configured so importing or starting the application does not
-unexpectedly download weights.
-
-The application uses typed configuration and application lifespan hooks for
-provider creation and cleanup. Model caches and generated audio use configured
-paths or temporary storage and must remain excluded from Git.
+event loop. Synchronous provider calls run through the shared worker-thread
+helper with a per-call timeout. `create_app` constructs provider objects from
+validated settings; model weights remain lazy and are not downloaded merely by
+starting the API. The current application lifespan logs startup and shutdown;
+it does not load or unload model weights. Model caches and generated audio must
+remain outside Git.
 
 ## Security and privacy boundaries
 
 - microphone capture requires explicit browser action and permission;
-- the default runtime sends no audio or text to external services;
+- the default mock runtime sends no audio or text to external services; real
+  providers run locally, while first-use model downloads contact their
+  configured hosting sources;
 - upload size/type limits and temporary-file cleanup are enforced;
-- CORS allows only intended development frontend origins;
+- CORS allows only `http://localhost:5500` and `http://127.0.0.1:5500` in
+  development; opaque `Origin: null` and other origins are not allowed;
 - arbitrary client filenames and filesystem paths are never accepted or reused;
 - secrets and environment-specific values stay outside Git; and
 - operational logs contain stage timing and outcomes rather than raw payloads.

@@ -9,7 +9,7 @@
 ![Language pair](https://img.shields.io/badge/Language-English%20%E2%86%94%20Hindi-4C8EDA)
 ![Local-first](https://img.shields.io/badge/Processing-Local--first-2E8B57)
 
-[Overview](#scope) · [How it works](docs/architecture.md) · [Setup](#getting-started) · [API docs](docs/api.md)
+[Overview](#scope) · [User guide](frontend/README.md) · [How it works](docs/architecture.md) · [Setup](#getting-started) · [API docs](docs/api.md)
 
 </div>
 

@@ -3,6 +3,19 @@
 The FastAPI server provides interactive documentation at `/docs` and an
 OpenAPI schema at `/openapi.json`.
 
+The documented application routes are `GET /api/health`,
+`POST /api/translate`, `POST /api/speech-to-text`, and
+`POST /api/speech-translate`. This server is intended for local development.
+
+## Development browser access
+
+The API allows browser requests only from `http://localhost:5500` and
+`http://127.0.0.1:5500`, without credentialed CORS. Serve the frontend from
+one of these origins; opaque `Origin: null` requests (including direct
+`file://` pages) are not allowed. The allowed request headers are
+`Content-Type`; exposed response headers include the speech metadata headers,
+`Content-Disposition`, and `X-Request-ID`.
+
 ## Health
 
 `GET /api/health` reports whether the API process is running. It does not load
@@ -23,9 +36,11 @@ GPU.
 ## Typed-text translation
 
 `POST /api/translate` accepts typed English or Hindi text and translates
-it in the selected direction. A translation provider must be configured
-when the application is created; the API does not silently return fake
-or identity translations when no provider is available.
+it in the selected direction. In the default `PROVIDER_MODE=mock`, the
+application installs deterministic fake providers; their output is not real
+translation. In `PROVIDER_MODE=real`, the configured local model providers are
+used. If a provider is explicitly unavailable, the endpoint returns a safe
+503 error rather than an identity translation.
 
 Each synchronous model-provider call is limited by
 `PROVIDER_TIMEOUT_SECONDS` (default: 120 seconds). A timed-out provider returns
@@ -44,13 +59,13 @@ removed during validation.
 }
 ```
 
-### Successful translation response
+### Translation response example
 
 The response includes the direction, source and target language codes
 (`en` or `hi`), source text, translated text, and a `success` status.
-`detected_language` is optional because typed-text requests may not use
-speech recognition. The source and target language fields must match the
-selected direction.
+`detected_language` is `null` for this typed-text example. The example below
+shows the default fake provider's literal output, not a Hindi translation;
+real-provider wording varies by model.
 
 ```json
 {
@@ -59,7 +74,7 @@ selected direction.
   "source_language": "en",
   "target_language": "hi",
   "detected_language": null,
-  "translated_text": "नमस्ते",
+  "translated_text": "[mock en-to-hi] Hello",
   "status": "success"
 }
 ```
@@ -69,8 +84,7 @@ selected direction.
 Empty/whitespace-only text and unsupported directions return HTTP 422
 with the stable `ErrorResponse` shape. If no translation provider is
 configured, the endpoint returns HTTP 503. A configured provider failure
-returns HTTP 502. A missing provider returns HTTP 503 instead of a fake
-translation. These provider errors use the stable `ErrorResponse` shape
+returns HTTP 502. These provider errors use the stable `ErrorResponse` shape
 with a safe message and the `translation` stage.
 
 ```json
@@ -119,6 +133,13 @@ for automatic language detection. The endpoint transcribes English or Hindi
 audio and returns the transcript, requested and detected language codes,
 optional provider confidence, and a success status.
 
+Supported media types are `audio/wav`, `audio/mpeg`, `audio/flac`, `audio/ogg`,
+`audio/webm`, and `audio/mp4`. Accepted aliases are `audio/x-wav`,
+`audio/wave`, `audio/mp3`, `audio/x-m4a`, and `application/ogg`; they are
+normalized to the corresponding media type. The declared media type is checked
+against the file signature. Both speech endpoints enforce the configurable
+`MAX_UPLOAD_SIZE_BYTES` limit, which defaults to 25 MiB.
+
 ```powershell
 curl.exe -X POST http://127.0.0.1:8000/api/speech-to-text `
   -F "file=@speech.wav;type=audio/wav" `
@@ -129,20 +150,25 @@ Successful response (`200 OK`):
 
 ```json
 {
-  "transcript": "Hello there.",
+  "transcript": "[mock transcription]",
   "requested_language": "en",
   "detected_language": "en",
-  "confidence": 0.94,
+  "confidence": 1.0,
   "status": "success"
 }
 ```
 
-The configured maximum upload size is enforced. Empty or malformed audio
-returns HTTP 422, unsupported media returns HTTP 415, and oversized audio
-returns HTTP 413. These errors use the stable `ErrorResponse` shape with the
-`validation` stage. A missing STT provider returns HTTP 503; STT failures return
-HTTP 502 and timeouts return HTTP 504 with the `stt` stage and a client-safe
-message. Client filenames are not used as filesystem paths.
+This response is the default fake STT output, not an actual transcription.
+Empty input returns HTTP 422 (`empty_audio`). A WAV file with a valid WAV
+signature but invalid or truncated WAV data returns HTTP 422 (`invalid_audio`);
+a signature that does not match the declared media type returns HTTP 415
+(`unsupported_audio_type`). Oversized audio returns HTTP 413
+(`audio_too_large`). Errors use the stable `ErrorResponse` shape with the
+`validation` stage. An unsupported language hint returns HTTP 422
+(`unsupported_language`). A missing STT provider returns HTTP 503; STT failures
+return HTTP 502 and timeouts return HTTP 504 with the `stt` stage and a
+client-safe message. Client filenames are ignored and are never interpreted
+as filesystem paths.
 
 ## Speech-to-speech translation
 
@@ -180,12 +206,8 @@ Clients should URL-decode those two values as UTF-8.
 
 This is a file response, not a JSON/binary multipart body. Browsers can create
 a playable object URL from the response body and read the metadata headers.
-`Access-Control-Expose-Headers` is set for the metadata and file headers.
-The API allows only `http://localhost:5500` and `http://127.0.0.1:5500` for
-development, without enabling credentialed CORS. Serve the frontend from one
-of these origins; opaque `Origin: null` requests (including direct `file://`
-pages) are not allowed. `X-Request-ID` is exposed to browser clients for
-correlation.
+`Access-Control-Expose-Headers` includes the metadata and file headers and
+`X-Request-ID` for correlation.
 
 Invalid direction or audio returns HTTP 4xx with the `validation` stage. A
 source-language mismatch returns HTTP 422 with stage `stt`. Provider failures
@@ -194,3 +216,24 @@ return HTTP 502, and unavailable providers return HTTP 503; both use the stable
 `tts`) without returning provider details or tracebacks. Provider timeouts
 return HTTP 504 with a stage-specific code. All API errors use the stable
 `ErrorResponse` schema and include their `X-Request-ID` correlation header.
+
+With the default fake providers, speech processing returns a placeholder
+transcript and translation plus the bytes `MOCK_AUDIO_NOT_REAL_SPEECH`, which
+are not playable speech. Use real local providers to evaluate speech output;
+do not treat mock output as a language-quality result.
+
+## Data handling and limitations
+
+The browser keeps a recording in memory and sends it to the local API only
+after the user selects **Translate recording**. Uploads are size/type checked;
+temporary STT files are removed after inference, including failure paths. The
+application does not log raw audio or full transcript/translation text by
+default. No endpoint accepts arbitrary filesystem paths. Real inference runs
+through local providers, but the first use may
+download model packages or weights from their configured hosting sources.
+
+The product supports only English and Hindi. Recognition, translation, and
+synthesis quality depends on the selected models, audio, and hardware; the
+demo set and performance script are not scientific benchmarks and make no
+quality or latency guarantee. For browser controls, privacy behavior, and
+known user-facing limitations, see the [frontend user guide](../frontend/README.md).
