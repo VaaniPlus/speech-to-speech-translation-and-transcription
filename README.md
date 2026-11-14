@@ -43,6 +43,8 @@ and approves that integration.
 ## Getting started
 
 The repository is designed to work on Windows with Python 3.11.
+For a complete clean-clone walkthrough, real model setup, GPU fallback, and
+troubleshooting, see the [Windows setup guide](docs/windows-setup.md).
 
 ```powershell
 git clone https://github.com/VaaniPlus/speech-to-speech-translation-and-transcription.git
