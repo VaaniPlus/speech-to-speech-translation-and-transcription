@@ -22,6 +22,13 @@ multipart endpoint and checking that the fake STT receives those exact bytes,
 the transcript is passed into translation, translated text reaches TTS, and
 the response contains the generated audio with encoded text metadata.
 
+## Optional performance benchmark
+
+The local real-model timing and memory harness is separate from tests and
+requires five short, consented WAV recordings per direction. See the
+[benchmark instructions](benchmarking.md). It never runs as part of the default
+test suite.
+
 ## Optional real-model smoke test
 
 Actual local inference is opt-in and separate from the default test suite. It
