@@ -4,39 +4,47 @@
 
 The application is a local-first English ↔ Hindi speech translation system.
 The browser owns microphone access and UI state. The FastAPI backend validates
-requests and orchestrates provider boundaries. STT, translation, and TTS
-implementations run behind replaceable interfaces and may execute locally.
+requests and orchestrates provider boundaries. Real inference runs through
+local adapters; first use may download model weights from configured hosts.
+The default mock mode uses deterministic placeholders and makes no model calls.
 
-```text
-┌──────────────────────────────────────┐
-│ Browser                              │
-│                                      │
-│ Direction selector                   │
-│ Microphone capture / typed text      │
-│ Source transcript + translated text  │
-│ Generated audio player               │
-└──────────────────┬───────────────────┘
-                   │ HTTP JSON / multipart upload
-                   ▼
-┌──────────────────────────────────────┐
-│ FastAPI application                  │
-│                                      │
-│ Routes → validation → service layer  │
-│                  ├─ STT provider     │
-│                  ├─ Translation      │
-│                  └─ TTS provider     │
-│                                      │
-│ Stable schemas + controlled errors   │
-└──────────────────┬───────────────────┘
-                   │ provider calls
-                   ▼
-┌──────────────────────────────────────┐
-│ Local model runtime                  │
-│                                      │
-│ STT: English/Hindi transcription     │
-│ Translation: English ↔ Hindi         │
-│ TTS: target-language speech synthesis│
-└──────────────────────────────────────┘
+```mermaid
+flowchart LR
+    UI["Browser UI<br/>localhost:5500<br/>typed text, microphone, playback"]
+    API["FastAPI<br/>127.0.0.1:8000<br/>CORS, request IDs, validation"]
+
+    TextRoute["POST /api/translate"]
+    STTRoute["POST /api/speech-to-text"]
+    SpeechRoute["POST /api/speech-translate"]
+    TextService["Text translation service"]
+    SpeechService["Speech pipeline"]
+    STT["STT provider interface"]
+    Translation["Translation provider interface"]
+    TTS["TTS provider interface"]
+
+    Mode{"PROVIDER_MODE"}
+    Mock["Fake providers<br/>default; placeholder output"]
+    Real["Local adapters<br/>Faster-Whisper · IndicTrans2 · Kokoro CPU"]
+    Cache["Local model cache<br/>outside Git"]
+    Hosts["Configured model hosts<br/>weights downloaded on first use"]
+
+    UI -->|"JSON or multipart audio"| API
+    API --> TextRoute --> TextService --> Translation
+    API --> STTRoute --> STT
+    API --> SpeechRoute --> SpeechService
+    SpeechService --> STT
+    SpeechService --> Translation
+    SpeechService --> TTS
+    Mode -->|mock| Mock
+    Mode -->|real| Real
+    Mock -.->|implements| STT
+    Mock -.->|implements| Translation
+    Mock -.->|implements| TTS
+    Real -.->|implements| STT
+    Real -.->|implements| Translation
+    Real -.->|implements| TTS
+    Real --> Cache
+    Hosts -.->|"model weights only"| Cache
 ```
 
 ## Components
