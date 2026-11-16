@@ -7,6 +7,7 @@ from app.main import create_app
 from app.providers.fake import FakeSTTProvider, FakeTTSProvider, FakeTranslationProvider
 from app.providers.faster_whisper_stt import FasterWhisperSTTProvider
 from app.providers.indictrans2_translation import IndicTrans2TranslationProvider
+from app.providers.marian_translation import MarianTranslationProvider
 from app.providers.kokoro_tts import KokoroTTSProvider
 from app.providers.stt import AudioInput
 
@@ -49,5 +50,5 @@ def test_real_mode_installs_real_adapters_without_fake_providers() -> None:
     app = create_app(Settings(_env_file=None, provider_mode="real"))
 
     assert isinstance(app.state.stt_provider, FasterWhisperSTTProvider)
-    assert isinstance(app.state.translation_provider, IndicTrans2TranslationProvider)
+    assert isinstance(app.state.translation_provider, (IndicTrans2TranslationProvider, MarianTranslationProvider))
     assert isinstance(app.state.tts_provider, KokoroTTSProvider)

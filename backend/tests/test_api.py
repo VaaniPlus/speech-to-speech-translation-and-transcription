@@ -154,7 +154,10 @@ def test_translate_endpoint_reports_unconfigured_provider_safely() -> None:
 
 
 def test_translate_endpoint_reports_real_provider_load_failure_safely() -> None:
-    app = create_app(Settings(_env_file=None, provider_mode="real"))
+    app = create_app(
+        Settings(_env_file=None, provider_mode="real"),
+        translation_provider=FailingTranslationProvider(),
+    )
 
     with TestClient(app) as client:
         response = client.post(

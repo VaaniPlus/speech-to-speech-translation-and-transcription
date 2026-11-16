@@ -1,18 +1,26 @@
-# Optional heavy model dependencies.
-# Install only on the target environment when a real model adapter is enabled.
+# Real model dependencies for speech-to-speech translation.
+# Install in the activated .venv when running with PROVIDER_MODE=real.
 # These packages are intentionally excluded from requirements.txt and
 # requirements-dev.txt so normal setup and tests do not download models.
 
+# STT (Speech-to-Text) — Faster Whisper via CTranslate2
 faster-whisper>=1.1.0,<2
 
-# Translation dependencies for an optional IndicTrans2 provider adapter.
-# Keep normal setup and tests offline; install and verify these only when
-# implementing or smoke-testing the real translation provider.
+# Translation — core dependencies (no C++ compiler needed on Windows)
 torch>=2.1,<3
-transformers>=4.40,<5
+transformers>=4.40
 safetensors>=0.4,<1
 sentencepiece>=0.2,<1
-IndicTransToolkit>=1.0,<2
+
+# MarianMT fallback translation provider (Helsinki-NLP/opus-mt).
+# Used automatically when IndicTransToolkit is not installed.
+# No additional packages required beyond torch, transformers, sentencepiece.
+
+# IndicTrans2 translation provider (ai4bharat) — optional.
+# Requires Microsoft C++ Build Tools on Windows to compile the Cython extension.
+# If IndicTransToolkit is not installed, the app falls back to MarianMT.
+# To install: pip install IndicTransToolkit --no-build-isolation
+# IndicTransToolkit>=1.0,<2
 
 # TTS dependencies for the optional Kokoro provider evaluation/adapter.
 # Install only in an environment that will run real TTS; Windows also needs

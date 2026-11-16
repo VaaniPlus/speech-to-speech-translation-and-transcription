@@ -49,84 +49,66 @@ The repository is designed to work on Windows with Python 3.11.
 For a complete clean-clone walkthrough, real model setup, GPU fallback, and
 troubleshooting, see the [Windows setup guide](docs/windows-setup.md).
 
+### 1. Initial Setup and Virtual Environment
+
 ```powershell
 git clone https://github.com/VaaniPlus/speech-to-speech-translation-and-transcription.git
 cd speech-to-speech-translation-and-transcription
 powershell -ExecutionPolicy Bypass -File .\scripts\setup_windows.ps1
 .\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 python -m pytest
 ```
 
-`setup_windows.ps1` requires Python 3.11, creates `.venv`, and installs the
-runtime and test dependencies. Heavy STT, translation, and TTS packages are
-listed in `requirements-ml.txt`; they are not installed during normal setup and
-should only be installed when testing or implementing a real model adapter.
+`setup_windows.ps1` requires Python 3.11, creates `.venv`, and installs dependencies.
+The core neural model packages (`torch`, `transformers`, `sentencepiece`, `faster-whisper`) are included in `requirements.txt` as pre-built wheels that require no C++ compiler.
 
-### Configure the environment
+### 2. Configure the Environment
 
-The application works with mock providers by default. To customize settings,
-copy the example environment file:
+Copy the example environment configuration:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Configuration includes the API host and port, provider mode, model IDs, cache
-directory, device, compute type, log level, and maximum upload size. `.env` is
-git-ignored. `PROVIDER_TIMEOUT_SECONDS` sets the per-provider-call deadline
-(default: 120 seconds). Invalid settings are reported with the setting name at
-startup. See [.env.example](.env.example) for all available variables.
+Key environment options in `.env`:
+- `PROVIDER_MODE=real` (default in `.env.example`): Uses real local neural translation (MarianMT / IndicTrans2). Set to `mock` if you prefer offline deterministic placeholders.
+- `DEVICE=cpu`: CPU inference mode (or `cuda` if compatible NVIDIA GPU is available).
+- `STT_COMPUTE_TYPE=int8`: 8-bit quantized compute for CPU-friendly STT inference.
+- `PROVIDER_TIMEOUT_SECONDS=300`: Timeout for provider calls (allows time for first-time model downloads).
+- `MODEL_CACHE_DIR=models`: Directory where model weights are cached.
 
-### Start the API
+### 3. Running the Application
+
+Running the application requires **two separate PowerShell terminals** simultaneously:
+
+#### Terminal 1 — Start the Backend API (Port 8000)
 
 ```powershell
+.\.venv\Scripts\Activate.ps1
 python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000
 ```
 
-Then open:
+Verify backend health at: <http://127.0.0.1:8000/api/health>  
+Interactive Swagger docs: <http://127.0.0.1:8000/docs>
 
-- Health check: <http://127.0.0.1:8000/api/health>
-- Swagger UI: <http://127.0.0.1:8000/docs>
-- ReDoc: <http://127.0.0.1:8000/redoc>
+> **Note on First Run**: The first translation request will automatically download the Helsinki-NLP MarianMT model (~300 MB) from Hugging Face into `models/`. Subsequent translations run entirely locally and return instantly.
 
-Startup does not download speech models. The default `PROVIDER_MODE=mock` uses
-deterministic fake providers, so the API and UI can be developed without a
-GPU, network download, or real model package. Real-provider mode is intended
-only after its model adapter is configured and dependencies are installed.
-
-### Local logs
-
-The API writes one JSON log event per line to standard error, visible in the
-terminal where Uvicorn is running. Events include request IDs and separate
-STT, translation, and TTS durations and outcomes. Raw audio and full transcript
-or translation text are not logged by default. To retain logs locally in
-PowerShell, redirect standard error to an ignored file:
+#### Terminal 2 — Start the Frontend Server (Port 5500)
 
 ```powershell
-python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 2> .\vaani-api.log
-```
-
-### Open the browser UI
-
-Serve the frontend locally and open it from a loopback origin:
-
-```powershell
+.\.venv\Scripts\Activate.ps1
 python -m http.server 5500 --directory frontend
 ```
 
-Open <http://localhost:5500> in a desktop browser while the API is running.
-The typed-text UI is connected to `POST /api/translate` for English → Hindi and
-Hindi → English requests; loading and error states are shown in the browser.
-Microphone capture starts only after selecting Start and granting browser
-permission. After stopping, select **Translate recording** to send the captured
-audio and selected direction to the local speech translation API. The source
-transcript and translated text are shown separately, and the generated
-target-language audio can be played from the result panel. Use **Reset** to
-clear the current input and result or cancel in-flight processing. The
-supported loopback origins provide the secure context required for microphone
-access.
+#### Terminal 3 / Browser — Open the UI
 
-### Run tests
+Open your browser to:
+<http://localhost:5500>
+
+> **Important**: Do not open `frontend/index.html` directly via `file://`. Browser microphone capture and CORS API requests require serving over loopback HTTP (`http://localhost:5500` or `http://127.0.0.1:5500`).
+
+### 4. Running Tests
 
 ```powershell
 python -m pytest

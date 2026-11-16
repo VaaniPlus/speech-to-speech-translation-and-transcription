@@ -382,9 +382,9 @@ function toggleTranslatedAudio() {
 
 function getApiUrl(endpoint = "translate") {
   if (window.location.protocol === "http:" || window.location.protocol === "https:") {
-    const isLocalHost = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+    const isLocalHost = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
     if (isLocalHost && window.location.port !== "8000") {
-      return `http://${window.location.hostname}:8000/api/${endpoint}`;
+      return `http://127.0.0.1:8000/api/${endpoint}`;
     }
     return `${window.location.origin}/api/${endpoint}`;
   }

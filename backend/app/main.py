@@ -29,6 +29,7 @@ from app.providers.fake import (
 )
 from app.providers.faster_whisper_stt import FasterWhisperSTTProvider
 from app.providers.indictrans2_translation import IndicTrans2TranslationProvider
+from app.providers.marian_translation import MarianTranslationProvider
 from app.providers.kokoro_tts import KokoroTTSProvider
 from app.providers.stt import STTProvider
 from app.providers.translation import TranslationProvider
@@ -112,6 +113,7 @@ def create_app(
         allow_origins=[
             "http://localhost:5500",
             "http://127.0.0.1:5500",
+            "http://[::1]:5500",
         ],
         allow_methods=["GET", "POST"],
         allow_headers=["Content-Type"],
@@ -138,15 +140,29 @@ def create_app(
             compute_type=app_settings.stt_compute_type,
             cache_dir=app_settings.model_cache_dir,
         )
-        application.state.translation_provider = (
-            translation_provider
-            or IndicTrans2TranslationProvider(
-                en_hi_model_id=app_settings.translation_en_hi_model_id,
-                hi_en_model_id=app_settings.translation_hi_en_model_id,
-                device=app_settings.device,
-                cache_dir=app_settings.model_cache_dir,
-            )
-        )
+        if translation_provider is not None:
+            application.state.translation_provider = translation_provider
+        else:
+            try:
+                from IndicTransToolkit.processor import IndicProcessor  # noqa: F401
+                application.state.translation_provider = IndicTrans2TranslationProvider(
+                    en_hi_model_id=app_settings.translation_en_hi_model_id,
+                    hi_en_model_id=app_settings.translation_hi_en_model_id,
+                    device=app_settings.device,
+                    cache_dir=app_settings.model_cache_dir,
+                )
+                logger.info("Translation provider: IndicTrans2 (ai4bharat)")
+            except ImportError:
+                logger.warning(
+                    "IndicTransToolkit not installed; falling back to MarianMT "
+                    "(Helsinki-NLP/opus-mt). Install IndicTransToolkit for the "
+                    "project-specified AI4Bharat provider."
+                )
+                application.state.translation_provider = MarianTranslationProvider(
+                    device=app_settings.device,
+                    cache_dir=app_settings.model_cache_dir,
+                )
+                logger.info("Translation provider: MarianMT (Helsinki-NLP/opus-mt)")
         application.state.tts_provider = tts_provider or KokoroTTSProvider(
             en_model_id=app_settings.tts_en_model_id,
             hi_model_id=app_settings.tts_hi_model_id,
