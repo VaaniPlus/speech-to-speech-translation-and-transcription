@@ -12,6 +12,7 @@ LogLevel = Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]
 Device = Literal["auto", "cpu", "cuda"]
 ComputeType = Literal["auto", "int8", "int8_float16", "int16", "float16", "float32"]
 ProviderMode = Literal["mock", "real"]
+TranslationProviderName = Literal["marian", "indictrans2"]
 
 
 class Settings(BaseSettings):
@@ -39,6 +40,7 @@ class Settings(BaseSettings):
     model_cache_dir: Path = Path("models")
     device: Device = "auto"
     stt_compute_type: ComputeType = "auto"
+    translation_provider: TranslationProviderName = "marian"
     max_upload_size_bytes: int = Field(default=25 * 1024 * 1024, gt=0)
     provider_timeout_seconds: float = Field(default=120.0, gt=0)
     provider_mode: ProviderMode = Field(

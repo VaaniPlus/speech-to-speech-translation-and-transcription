@@ -98,8 +98,8 @@ class IndicTrans2TranslationProvider:
             raise
         except ImportError as error:
             raise TranslationProviderError(
-                "IndicTrans2 dependencies are not installed; run `uv sync --extra ml` "
-                "from backend/ and install IndicTransToolkit separately"
+                "IndicTrans2 dependencies are not installed; run "
+                "`uv sync --project backend --extra ml`"
             ) from error
         except Exception as error:
             raise TranslationProviderError("The translation model could not be loaded") from error

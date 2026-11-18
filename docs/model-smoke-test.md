@@ -25,6 +25,7 @@ approved local model mirror is being used.
 
 ```powershell
 $env:PROVIDER_MODE = "real"
+$env:TRANSLATION_PROVIDER = "marian"
 $env:DEVICE = "cpu"
 $env:STT_COMPUTE_TYPE = "int8"
 $env:MODEL_CACHE_DIR = "$env:LOCALAPPDATA\VaaniPlus\models"
@@ -36,6 +37,9 @@ Keep this API process running. Model providers load lazily, so the first
 request for a direction can include model initialization and may take much
 longer than subsequent requests. The browser shows the request's processing
 state during that time. Do not start duplicate requests while waiting.
+MarianMT is the default real text translator. To opt into AI4Bharat IndicTrans2
+instead, set `$env:TRANSLATION_PROVIDER = "indictrans2"` and ensure your Hugging
+Face account has access to the selected checkpoint before starting the API.
 
 In a second PowerShell window, start the Vite frontend:
 
@@ -68,7 +72,7 @@ recordings, generated audio, model files, or private transcripts.
 To return the current shell to mock mode after stopping the API:
 
 ```powershell
-Remove-Item Env:PROVIDER_MODE, Env:DEVICE, Env:STT_COMPUTE_TYPE, Env:MODEL_CACHE_DIR `
+Remove-Item Env:PROVIDER_MODE, Env:TRANSLATION_PROVIDER, Env:DEVICE, Env:STT_COMPUTE_TYPE, Env:MODEL_CACHE_DIR `
   -ErrorAction SilentlyContinue
 ```
 

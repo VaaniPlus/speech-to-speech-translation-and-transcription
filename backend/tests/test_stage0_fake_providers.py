@@ -50,5 +50,17 @@ def test_real_mode_installs_real_adapters_without_fake_providers() -> None:
     app = create_app(Settings(_env_file=None, provider_mode="real"))
 
     assert isinstance(app.state.stt_provider, FasterWhisperSTTProvider)
-    assert isinstance(app.state.translation_provider, (IndicTrans2TranslationProvider, MarianTranslationProvider))
+    assert isinstance(app.state.translation_provider, MarianTranslationProvider)
     assert isinstance(app.state.tts_provider, KokoroTTSProvider)
+
+
+def test_real_mode_can_select_indictrans2_explicitly() -> None:
+    app = create_app(
+        Settings(
+            _env_file=None,
+            provider_mode="real",
+            translation_provider="indictrans2",
+        )
+    )
+
+    assert isinstance(app.state.translation_provider, IndicTrans2TranslationProvider)

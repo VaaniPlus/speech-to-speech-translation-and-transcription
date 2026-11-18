@@ -13,7 +13,8 @@
 </p>
 <p>
 <img alt="Speech to text" src="https://img.shields.io/badge/SPEECH_TO_TEXT-Faster--Whisper-2563EB?style=for-the-badge">
-<img alt="Translation" src="https://img.shields.io/badge/TRANSLATION-AI4India-FF9933?style=for-the-badge">
+<img alt="Translation" src="https://img.shields.io/badge/TRANSLATION-MarianMT%20(default)-7C3AED?style=for-the-badge">
+<img alt="Optional translation" src="https://img.shields.io/badge/OPTIONAL_TRANSLATION-AI4Bharat%20IndicTrans2-FF9933?style=for-the-badge">
 <img alt="Text to speech" src="https://img.shields.io/badge/TEXT_TO_SPEECH-Kokoro-EC4899?style=for-the-badge">
 </p>
 <p>
@@ -21,10 +22,11 @@
 </p>
 
 VaaniPlus is a local-first browser application for English ↔ Hindi speech
-translation and transcription. The vanilla TypeScript frontend provides
+translation and transcription. Its pipeline is **speech-to-text → text
+translation → text-to-speech**. The Vite + vanilla TypeScript frontend provides
 microphone capture, typed-text input, result display, and audio playback. The
-FastAPI backend coordinates replaceable STT, translation, and TTS providers
-through a privacy-focused local pipeline.
+FastAPI backend coordinates replaceable Faster-Whisper, MarianMT, optional
+AI4Bharat IndicTrans2, and Kokoro providers.
 
 [Overview](#scope) · [User guide](frontend/README.md) · [How it works](docs/architecture.md) · [Setup](#getting-started) · [API docs](docs/api.md) · [Final demo](docs/final-demo-script.md) · [Handoff](docs/final-handoff.md)
 
@@ -71,12 +73,32 @@ uv run --project backend --directory backend uvicorn app.main:app --host 127.0.0
 
 ```powershell
 Set-Location .\frontend
+# First run only:
+npm ci
 npm run dev
 ```
 
 Open <http://127.0.0.1:5173>. The frontend communicates with the API through
 Vite's `/api` proxy. For optional real-model configuration and troubleshooting,
 see the [Windows setup guide](docs/windows-setup.md).
+
+### Translation modes
+
+Without a local `.env`, the backend uses mock providers; mock results are
+placeholders, not real translations or speech. To enable local model inference,
+copy the example configuration and install the optional model dependencies
+once:
+
+```powershell
+Copy-Item backend/.env.example backend/.env
+uv sync --project backend --extra ml
+```
+
+The example selects real providers and **MarianMT** for typed English ↔ Hindi
+translation. Its model downloads on the first translation request. **AI4Bharat
+IndicTrans2** is optional: set `TRANSLATION_PROVIDER=indictrans2` in
+`backend/.env`; Hugging Face may require access approval for its model
+checkpoints. See the [translation model guide](docs/translation-model-selection.md).
 
 ### Run tests
 
@@ -88,21 +110,16 @@ The default suite uses fake providers and does not download model weights. See
 [testing](docs/testing.md) for the focused speech integration test and
 [optional real-model smoke test](docs/model-smoke-test.md).
 
-### Latest Windows acceptance run (2026-11-14)
+### Latest local validation (2026-11-18)
 
-- `uv run --project backend pytest`: 129 passed, 1 skipped. The skip is the opt-in real
-  Faster-Whisper smoke test, which requires a recording and model inference.
-- Typed-text and speech workflows passed in both directions with mock
-  providers. Speech UI checks used synthetic WAV data; microphone denial was
-  simulated by rejecting the browser permission request.
-- Provider failure/timeout tests passed (8 targeted cases). Whitespace text
-  and empty audio were rejected; API health, Swagger, and OpenAPI returned
-  successfully.
+- `uv run --project backend pytest`: 134 passed, 1 skipped. The skip is the
+  optional real Faster-Whisper test, which needs model inference and a recording.
+- A real MarianMT API smoke request translated “Hello, how are you?” to Hindi.
+- Mock providers remain workflow placeholders. Physical microphone capture
+  and real STT/TTS inference were not validated in this run.
 
-Physical microphone capture and real-model inference were not performed.
-Mock transcript, translation, and audio output are placeholders, so this run
-does not validate language or speech quality. See the
-[demo checklist](docs/demo-checklist.md).
+This smoke check is not a translation-quality benchmark. See the
+[demo checklist](docs/demo-checklist.md) for workflow validation.
 
 ## Project workflow
 

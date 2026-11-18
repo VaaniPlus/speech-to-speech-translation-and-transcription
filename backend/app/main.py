@@ -145,27 +145,20 @@ def create_app(
         )
         if translation_provider is not None:
             application.state.translation_provider = translation_provider
+        elif app_settings.translation_provider == "indictrans2":
+            application.state.translation_provider = IndicTrans2TranslationProvider(
+                en_hi_model_id=app_settings.translation_en_hi_model_id,
+                hi_en_model_id=app_settings.translation_hi_en_model_id,
+                device=app_settings.device,
+                cache_dir=app_settings.model_cache_dir,
+            )
+            logger.info("Translation provider: IndicTrans2 (ai4bharat)")
         else:
-            try:
-                from IndicTransToolkit.processor import IndicProcessor  # noqa: F401
-                application.state.translation_provider = IndicTrans2TranslationProvider(
-                    en_hi_model_id=app_settings.translation_en_hi_model_id,
-                    hi_en_model_id=app_settings.translation_hi_en_model_id,
-                    device=app_settings.device,
-                    cache_dir=app_settings.model_cache_dir,
-                )
-                logger.info("Translation provider: IndicTrans2 (ai4bharat)")
-            except ImportError:
-                logger.warning(
-                    "IndicTransToolkit not installed; falling back to MarianMT "
-                    "(Helsinki-NLP/opus-mt). Install IndicTransToolkit for the "
-                    "project-specified AI4Bharat provider."
-                )
-                application.state.translation_provider = MarianTranslationProvider(
-                    device=app_settings.device,
-                    cache_dir=app_settings.model_cache_dir,
-                )
-                logger.info("Translation provider: MarianMT (Helsinki-NLP/opus-mt)")
+            application.state.translation_provider = MarianTranslationProvider(
+                device=app_settings.device,
+                cache_dir=app_settings.model_cache_dir,
+            )
+            logger.info("Translation provider: MarianMT (Helsinki-NLP/opus-mt)")
         application.state.tts_provider = tts_provider or KokoroTTSProvider(
             en_model_id=app_settings.tts_en_model_id,
             hi_model_id=app_settings.tts_hi_model_id,

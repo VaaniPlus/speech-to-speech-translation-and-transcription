@@ -24,7 +24,7 @@ flowchart LR
 
     Mode{"PROVIDER_MODE"}
     Mock["Fake providers<br/>default; placeholder output"]
-    Real["Local adapters<br/>Faster-Whisper · IndicTrans2 · Kokoro CPU"]
+    Real["Local adapters<br/>Faster-Whisper · MarianMT (default) / IndicTrans2 · Kokoro CPU"]
     Cache["Local model cache<br/>outside Git"]
     Hosts["Configured model hosts<br/>weights downloaded on first use"]
 
@@ -113,15 +113,14 @@ plain translated text or a typed `TranslationResult` containing source/target
 language metadata. Direction-to-language mapping is centralized in configuration
 or a small policy type rather than in route handlers.
 
-In `PROVIDER_MODE=real`, the application uses
-`IndicTrans2TranslationProvider` with separate English-to-Hindi and
-Hindi-to-English checkpoints. Development and tests use
-`FakeTranslationProvider`, which returns visibly prefixed mock output and must
-not be described as real translation. The provider boundary prevents route and
-service code from depending on a model package or model identifier.
-`PROVIDER_MODE=mock` also installs fake STT and TTS providers with no network or
-model-download side effects. The configured IndicTrans2 checkpoints, official
-sources, language codes, Windows setup, and verification notes are recorded in
+In `PROVIDER_MODE=real`, the application uses the configured
+`TRANSLATION_PROVIDER`; MarianMT is the default, and IndicTrans2 can be selected
+explicitly. Development and tests use `FakeTranslationProvider`, which returns
+visibly prefixed mock output and must not be described as real translation. The
+provider boundary prevents route and service code from depending on a model
+package or model identifier. `PROVIDER_MODE=mock` also installs fake STT and TTS
+providers with no network or model-download side effects. Provider options,
+checkpoints, Windows setup, and verification notes are recorded in
 [translation model selection](translation-model-selection.md).
 
 #### Text-to-speech

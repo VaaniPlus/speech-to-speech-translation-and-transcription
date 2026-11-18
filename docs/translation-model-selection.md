@@ -1,20 +1,27 @@
 # Windows English ↔ Hindi translation model selection
 
-## Status and selected implementation
+## Status and provider choice
 
-The team should use the official Hugging Face **IndicTrans2** checkpoints behind
-separate directional `TranslationProvider` instances/adapters:
+The default real text translation provider is **MarianMT** from Helsinki-NLP.
+It restores the previously working English ↔ Hindi translation path without
+requiring gated model access. Set `TRANSLATION_PROVIDER=indictrans2` to choose
+AI4Bharat IndicTrans2 explicitly; that provider uses separate directional
+checkpoints:
 
 | Direction | Source/target language codes | Official Hugging Face checkpoint |
 |---|---|---|
 | English → Hindi (`en-to-hi`) | `eng_Latn` → `hin_Deva` | `ai4bharat/indictrans2-en-indic-dist-200M` |
 | Hindi → English (`hi-to-en`) | `hin_Deva` → `eng_Latn` | `ai4bharat/indictrans2-indic-en-dist-200M` |
 
-These are the distilled 200M models listed in the official IndicTrans2 model
+These are the distilled models listed in the official IndicTrans2 model
 documentation. IndicTrans2 is directional: do not rely on a single reverse
 checkpoint for both directions. The project will continue to expose stable
 application codes `en-to-hi` and `hi-to-en`; the checkpoint codes are mapping
 metadata and must not replace them.
+
+The default MarianMT provider uses `Helsinki-NLP/opus-mt-en-hi` and
+`Helsinki-NLP/opus-mt-hi-en`, loading only the selected direction. It does not
+use `trust_remote_code`.
 
 ## Source and license
 
@@ -32,15 +39,21 @@ metadata and must not replace them.
 
 ## Windows installation
 
-Use Python 3.11 and an activated virtual environment. Install normal project
-dependencies first, then install translation dependencies only in an
-environment that will run a real translation provider:
+Use Python 3.11 and install the optional real-model dependencies from the
+repository root:
 
 ```powershell
-python -m pip install -U pip
-python -m pip install torch torchvision torchaudio transformers safetensors sentencepiece
-python -m pip install --no-deps IndicTransToolkit
+uv sync --project backend --extra ml
 ```
+
+The `ml` extra pins Transformers below version 5 and includes
+`IndicTransToolkit` with its Windows-compatible Indic NLP dependency. It
+installs packages, not model weights.
+
+The AI4Bharat checkpoints may require Hugging Face access approval. Request
+access on the relevant model page, then authenticate locally with `hf auth
+login`; never put the token in source code or share it in chat. English → Hindi
+and Hindi → English use separate checkpoints and may require access to each.
 
 For a CUDA-enabled NVIDIA installation, install a PyTorch build that matches
 the installed Windows NVIDIA driver/CUDA stack, using the version selector from
@@ -84,10 +97,9 @@ is an estimate, not a benchmark:
 - Two-direction operation: loading both models simultaneously is unnecessary.
   Prefer lazy loading or unload/replace the active directional model.
 
-Because no model weights were downloaded and no real inference was run for this
-documentation item, VRAM/RAM latency values are not yet measured. A real smoke
-test must record the actual values on the team Windows environment rather than
-infer them from parameter count.
+VRAM/RAM and latency values are not benchmarked here. A real smoke test must
+record actual values on the team Windows environment rather than infer them
+from parameter count.
 
 ## Manual smoke-test protocol
 
