@@ -38,7 +38,7 @@ microphone capture, typed-text input, result display, and audio playback. The
 FastAPI backend coordinates replaceable Faster-Whisper, MarianMT, and Kokoro
 providers.
 
-[Overview](#scope) · [User guide](frontend/README.md) · [How it works](docs/architecture.md) · [Setup](#getting-started) · [API docs](docs/api.md) · [Final demo](docs/final-demo-script.md) · [Handoff](docs/final-handoff.md)
+[Overview](#scope) · [User guide](frontend/README.md) · [Architecture](#architecture) · [Setup](#getting-started) · [API docs](docs/api.md) · [Final demo](docs/final-demo-script.md) · [Handoff](docs/final-handoff.md)
 
 </div>
 
@@ -84,6 +84,35 @@ and approves that integration.
 See the [backend setup](backend/README.md), [frontend setup](frontend/README.md),
 [requirements](docs/requirements.md), and
 [architecture guide](docs/architecture.md) for details.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Browser["Vite + vanilla TypeScript<br/>Local browser or GitHub Pages"]
+    API["FastAPI + Uvicorn<br/>Local backend :8000"]
+    Translation["MarianMT"]
+    STT["Faster-Whisper"]
+    TTS["Kokoro"]
+
+    Browser -->|"Typed text: POST /api/translate"| API
+    API --> Translation
+    Translation -->|"Translated text JSON"| Browser
+    Browser -->|"POST /api/text-to-speech"| API
+    API --> TTS
+    TTS -->|"Audio file"| Browser
+    Browser -->|"Recorded audio: POST /api/speech-translate"| API
+    API --> STT --> Translation --> TTS
+    TTS -->|"Audio + transcript/translation headers"| Browser
+```
+
+Typed input is translated first, then the frontend requests speech for the
+translated text. Recorded speech follows the backend pipeline:
+**speech-to-text → text translation → text-to-speech**. In mock mode, fake
+providers demonstrate the workflow; real mode uses the local model providers.
+GitHub Pages hosts only the static frontend; a separately hosted backend is
+required for API features outside local development. See the full
+[architecture guide](docs/architecture.md).
 
 ## Getting started
 
