@@ -65,7 +65,6 @@ and approves that integration.
 │   │   ├── services/     # Speech, translation, and synthesis workflows
 │   │   ├── utils/
 │   │   └── main.py
-│   ├── scripts/          # Local evaluation and benchmarks
 │   ├── tests/
 │   ├── pyproject.toml
 │   └── uv.lock
@@ -77,7 +76,6 @@ and approves that integration.
 │   └── vite.config.ts
 ├── data/                 # Evaluation datasets
 ├── docs/                 # Architecture, API, setup, and demo guides
-├── scripts/              # Optional development helpers
 └── README.md
 ```
 
@@ -164,6 +162,25 @@ translation. Its model downloads on the first translation request. See the
 [translation model guide](docs/translation-model-selection.md) for model and
 Windows notes.
 
+### Faster-Whisper on Windows
+
+Speech-to-text uses the
+[SYSTRAN faster-whisper project](https://github.com/SYSTRAN/faster-whisper)
+with the Hugging Face model
+[Systran/faster-whisper-small](https://huggingface.co/Systran/faster-whisper-small).
+For GPU-accelerated transcription on Windows, the requirements are:
+
+- an NVIDIA GPU with CUDA support; and
+- [cuDNN 9.x](https://developer.nvidia.com/cudnn) installed on Windows.
+
+Faster-Whisper runs through CTranslate2, so the installed NVIDIA driver and
+CUDA/cuDNN libraries must be compatible with the installed CTranslate2 version.
+This project's current local configuration uses CPU inference with
+`DEVICE=cpu` and `STT_COMPUTE_TYPE=int8`; it does not use GPU acceleration.
+To opt into GPU inference, configure a compatible CUDA setup. If CUDA is
+unavailable or fails, use the CPU settings above. See the
+[Windows setup guide](docs/windows-setup.md) for configuration and diagnostics.
+
 ### Run tests
 
 ```powershell
@@ -176,7 +193,7 @@ The default suite uses fake providers and does not download model weights. See
 
 ### Latest local validation (2026-11-18)
 
-- `uv run --project backend pytest`: 128 passed, 1 skipped. The skip is the
+- `uv run --project backend pytest`: 125 passed, 1 skipped. The skip is the
   optional real Faster-Whisper test, which needs model inference and a recording.
 - A real MarianMT API request returned Hindi, and Kokoro generated a valid Hindi
   WAV file.

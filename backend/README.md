@@ -21,13 +21,6 @@ weights. To install optional local inference dependencies, sync the `ml` extra:
 uv sync --extra ml
 ```
 
-Run the optional live microphone transcription example with a CUDA-capable
-Windows environment:
-
-```powershell
-uv run python scripts/stage1_speech_to_text_live.py
-```
-
 Real providers may download model weights on first use. Configure the backend
 with environment variables or `backend/.env`. To create the local configuration:
 

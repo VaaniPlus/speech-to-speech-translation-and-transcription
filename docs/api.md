@@ -257,6 +257,6 @@ download model packages or weights from their configured hosting sources.
 
 The product supports only English and Hindi. Recognition, translation, and
 synthesis quality depends on the selected models, audio, and hardware; the
-demo set and performance script are not scientific benchmarks and make no
-quality or latency guarantee. For browser controls, privacy behavior, and
-known user-facing limitations, see the [frontend user guide](../frontend/README.md).
+demo set is not a scientific benchmark and makes no quality or latency
+guarantee. For browser controls, privacy behavior, and known user-facing
+limitations, see the [frontend user guide](../frontend/README.md).
