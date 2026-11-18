@@ -20,6 +20,10 @@
 <img alt="Models" src="https://img.shields.io/badge/MODELS-Hugging%20Face-facc15?style=for-the-badge&logo=huggingface&logoColor=black">
 </p>
 <p>
+<strong>Speech-to-text runtime</strong><br>
+<a href="https://github.com/SYSTRAN/faster-whisper">SYSTRAN/faster-whisper</a>
+</p>
+<p>
 <strong>Hugging Face models</strong><br>
 Speech-to-text:
 <a href="https://huggingface.co/Systran/faster-whisper-small">Systran/faster-whisper-small</a><br>
@@ -175,8 +179,8 @@ For GPU-accelerated transcription on Windows, the requirements are:
 
 Faster-Whisper runs through CTranslate2, so the installed NVIDIA driver and
 CUDA/cuDNN libraries must be compatible with the installed CTranslate2 version.
-This project's current local configuration uses CPU inference with
-`DEVICE=cpu` and `STT_COMPUTE_TYPE=int8`; it does not use GPU acceleration.
+**This project uses CPU inference, not GPU acceleration**
+(`DEVICE=cpu`, `STT_COMPUTE_TYPE=int8`).
 To opt into GPU inference, configure a compatible CUDA setup. If CUDA is
 unavailable or fails, use the CPU settings above. See the
 [Windows setup guide](docs/windows-setup.md) for configuration and diagnostics.
