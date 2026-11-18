@@ -5,7 +5,7 @@ import math
 import time
 
 from app.core.logging_config import log_event
-from app.providers.stt import AudioInput, LanguageCode, STTProvider, STTResult
+from app.providers.stage1_speech_to_text import AudioInput, LanguageCode, STTProvider, STTResult
 from app.schemas.speech import SpeechToTextResponse
 from app.services.provider_execution import ProviderCallTimeout, run_provider_call
 

@@ -7,9 +7,9 @@ demo. The default mock providers support workflow testing only; real inference
 uses local adapters and may download model weights on first use. Model output
 is not guaranteed to be accurate or fast.
 
-The contribution mapping below follows the owner assignments in
-[`IMPLEMENTATION.md`](../IMPLEMENTATION.md) and the merged Sprint 4 PR history.
-It records task ownership and merged work, not individual commit authorship.
+The contribution mapping below summarizes the team's Sprint 4 ownership and
+merged PR history. It records task ownership and merged work, not individual
+commit authorship.
 
 | Member | Sprint 4 assignment | Merged PRs |
 |---|---|---|
@@ -21,7 +21,7 @@ It records task ownership and merged work, not individual commit authorship.
 ## Validation snapshot
 
 - Snapshot checked: `main` at `5ace296` (AMTT-39 PR #80 merged).
-- Windows default suite: `python -m pytest` — 129 passed, 1 skipped. The skip
+- Windows default suite: `uv run --project backend pytest` — 129 passed, 1 skipped. The skip
   is the opt-in Faster-Whisper smoke test requiring a local recording and real
   inference.
 - Typed and speech UI flows were exercised in both directions with mock
@@ -30,7 +30,7 @@ It records task ownership and merged work, not individual commit authorship.
 - No tracked GitHub Actions workflows were present at this snapshot; the
   validation signal is the local test run, not a hosted CI check.
 - A tracked-path scan found no runtime `.env` file (the tracked
-  `.env.example` is the template), model cache/weight paths, audio recordings,
+  `backend/.env.example` is the template), model cache/weight paths, audio recordings,
   or generated log/test-output files. This is not a substitute for a credential
   scanner or independent security review.
 
@@ -48,7 +48,7 @@ team. Create and push the release tag only if those checks pass:
 ```powershell
 git switch main
 git pull --ff-only origin main
-python -m pytest
+uv run --project backend pytest
 git tag -a v1.0.0 -m "Release v1.0.0"
 git push origin v1.0.0
 ```

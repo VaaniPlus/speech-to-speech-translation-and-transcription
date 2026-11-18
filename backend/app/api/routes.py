@@ -7,9 +7,9 @@ from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import FileResponse, Response
 
 from app.core.config import Settings
-from app.providers.stt import LanguageCode, STTProvider
-from app.providers.translation import TranslationProvider
-from app.providers.tts import TTSProvider
+from app.providers.stage1_speech_to_text import LanguageCode, STTProvider
+from app.providers.stage2_text_to_text_translation import TranslationProvider
+from app.providers.stage3_text_to_speech import TTSProvider
 from app.schemas.speech import SpeechToTextResponse
 from app.schemas.translation import (
     ErrorResponse,
@@ -18,12 +18,12 @@ from app.schemas.translation import (
     TranslationRequest,
     TranslationResponse,
 )
-from app.services.speech_to_text_service import transcribe_audio
-from app.services.speech_translation_service import (
+from app.services.stage1_speech_to_text_service import transcribe_audio
+from app.services.stage4_speech_to_speech_pipeline_service import (
     SpeechTranslationResult,
     translate_speech,
 )
-from app.services.translation_service import translate_text
+from app.services.stage2_text_to_text_translation_service import translate_text
 from app.utils.audio import CONTENT_TYPE_SUFFIXES, AudioInputError, read_audio_upload
 
 router = APIRouter()

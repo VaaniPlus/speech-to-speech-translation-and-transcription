@@ -1,6 +1,6 @@
 # Local speech-pipeline benchmark
 
-[`scripts/benchmark_pipeline.py`](../scripts/benchmark_pipeline.py) measures
+[`backend/scripts/stage4_speech_to_speech_pipeline_benchmark.py`](../backend/scripts/stage4_speech_to_speech_pipeline_benchmark.py) measures
 the real STT → translation → TTS providers on five short WAV examples
 per direction. It reports first-call and subsequent warm-call latency for each
 stage, process peak RSS, available CPU/GPU details, configured model IDs, device,
@@ -35,17 +35,18 @@ Do not commit recordings or reports containing private material.
 
 ## Run
 
-Activate the project virtual environment, configure real providers, and keep
-the model cache outside the repository. With model downloads disabled (the
-default), the script puts Hugging Face libraries into offline mode and requires
-the selected model files to already be cached:
+From the repository root, sync the uv project, configure real providers, and
+keep the model cache outside the repository. With model downloads disabled
+(the default), the script puts Hugging Face libraries into offline mode and
+requires the selected model files to already be cached:
 
 ```powershell
 $env:PROVIDER_MODE = "real"
 $env:DEVICE = "cpu"
 $env:STT_COMPUTE_TYPE = "int8"
 $env:MODEL_CACHE_DIR = "$env:LOCALAPPDATA\VaaniPlus\models"
-python .\scripts\benchmark_pipeline.py `
+uv sync --project backend --extra ml
+uv run --project backend python .\backend\scripts\stage4_speech_to_speech_pipeline_benchmark.py `
   --audio-root "$env:LOCALAPPDATA\VaaniPlus\benchmark-audio" `
   --output "$env:LOCALAPPDATA\VaaniPlus\amtt-35-report.json"
 ```

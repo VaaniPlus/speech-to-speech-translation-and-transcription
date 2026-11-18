@@ -12,7 +12,7 @@ from pathlib import Path
 
 from fastapi import UploadFile
 
-from app.providers.stt import AudioInput
+from app.providers.stage1_speech_to_text import AudioInput
 
 CONTENT_TYPE_SUFFIXES = {
     "audio/wav": ".wav",

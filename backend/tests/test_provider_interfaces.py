@@ -14,9 +14,9 @@ from app.providers import (
     TranslationProviderError,
     TranslationResult,
 )
-from app.providers.stt import AudioInput
+from app.providers.stage1_speech_to_text import AudioInput
 from app.schemas.translation import TranslationRequest
-from app.services.translation_service import translate_text
+from app.services.stage2_text_to_text_translation_service import translate_text
 
 
 class FakeSTTProvider:

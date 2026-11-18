@@ -6,12 +6,11 @@ both English ↔ Hindi directions. It is for the Windows setup documented in the
 
 ## Before the demo
 
-1. Use a clean checkout and follow the Windows setup guide. Activate `.venv`
-   in each terminal, then run the default suite:
+1. Use a clean checkout and follow the Windows setup guide, then run the
+   default suite:
 
    ```powershell
-   .\.venv\Scripts\Activate.ps1
-   python -m pytest
+   uv run --project backend pytest
    ```
 
 2. For a real language/speech demo, install the optional ML packages and
@@ -31,16 +30,18 @@ both English ↔ Hindi directions. It is for the Windows setup documented in the
    $env:MODEL_CACHE_DIR = "$env:LOCALAPPDATA\VaaniPlus\models"
    $env:HF_HOME = $env:MODEL_CACHE_DIR
    New-Item -ItemType Directory -Force $env:MODEL_CACHE_DIR | Out-Null
-   python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000
+   uv run --project backend --directory backend uvicorn app.main:app --host 127.0.0.1 --port 8000
    ```
 
-5. In a second repository-root terminal, serve the frontend:
+5. In a second terminal, start the Vite frontend:
 
    ```powershell
-   python -m http.server 5500 --directory frontend
+   Set-Location .\frontend
+   npm ci
+   npm run dev
    ```
 
-   Open `http://localhost:5500`. Confirm that
+   Open `http://127.0.0.1:5173`. Confirm that
    `http://127.0.0.1:8000/api/health` returns `{"status":"ok"}`.
 
 ## Walkthrough

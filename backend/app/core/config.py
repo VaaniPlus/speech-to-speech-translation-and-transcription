@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import Field, ValidationError, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
+BACKEND_ROOT = Path(__file__).resolve().parents[2]
 LogLevel = Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]
 Device = Literal["auto", "cpu", "cuda"]
 ComputeType = Literal["auto", "int8", "int8_float16", "int16", "float16", "float32"]
@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     """Runtime configuration for the local speech translation application."""
 
     model_config = SettingsConfigDict(
-        env_file=PROJECT_ROOT / ".env",
+        env_file=BACKEND_ROOT / ".env",
         env_file_encoding="utf-8",
         extra="ignore",
     )

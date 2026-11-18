@@ -1,35 +1,77 @@
-"use strict";
+type UIElements = {
+  direction: HTMLSelectElement;
+  "source-language": HTMLSpanElement;
+  "target-language": HTMLSpanElement;
+  "source-pill": HTMLSpanElement;
+  "target-pill": HTMLSpanElement;
+  "source-text": HTMLTextAreaElement;
+  "character-count": HTMLSpanElement;
+  "translate-button": HTMLButtonElement;
+  "translate-button-label": HTMLSpanElement;
+  "result-placeholder-content": HTMLElement;
+  "translation-output": HTMLElement;
+  "source-output": HTMLParagraphElement;
+  "translated-output": HTMLParagraphElement;
+  "workspace-status": HTMLElement;
+  "workspace-status-text": HTMLSpanElement;
+  "workspace-status-icon": HTMLSpanElement;
+  "record-button": HTMLButtonElement;
+  "stop-button": HTMLButtonElement;
+  "recording-status": HTMLSpanElement;
+  "recording-indicator": HTMLElement;
+  "speech-submit-button": HTMLButtonElement;
+  "speech-submit-label": HTMLSpanElement;
+  "audio-status": HTMLSpanElement;
+  "audio-toggle-button": HTMLButtonElement;
+  "audio-toggle-label": HTMLSpanElement;
+  "audio-replay-button": HTMLButtonElement;
+  "translated-audio": HTMLAudioElement;
+  "reset-button": HTMLButtonElement;
+};
 
-const directionSelect = document.querySelector("#direction");
-const sourceLanguage = document.querySelector("#source-language");
-const targetLanguage = document.querySelector("#target-language");
-const sourcePill = document.querySelector("#source-pill");
-const targetPill = document.querySelector("#target-pill");
-const sourceText = document.querySelector("#source-text");
-const characterCount = document.querySelector("#character-count");
-const translateButton = document.querySelector("#translate-button");
-const translateButtonLabel = document.querySelector("#translate-button-label");
-const placeholderContent = document.querySelector("#result-placeholder-content");
-const translationOutput = document.querySelector("#translation-output");
-const sourceOutput = document.querySelector("#source-output");
-const translatedOutput = document.querySelector("#translated-output");
-const workspaceStatus = document.querySelector("#workspace-status");
-const workspaceStatusText = document.querySelector("#workspace-status-text");
-const workspaceStatusIcon = document.querySelector("#workspace-status-icon");
-const recordButton = document.querySelector("#record-button");
-const stopButton = document.querySelector("#stop-button");
-const recordingStatus = document.querySelector("#recording-status");
-const recordingIndicator = document.querySelector("#recording-indicator");
-const speechSubmitButton = document.querySelector("#speech-submit-button");
-const speechSubmitLabel = document.querySelector("#speech-submit-label");
-const audioStatus = document.querySelector("#audio-status");
-const audioToggleButton = document.querySelector("#audio-toggle-button");
-const audioToggleLabel = document.querySelector("#audio-toggle-label");
-const audioReplayButton = document.querySelector("#audio-replay-button");
-const translatedAudio = document.querySelector("#translated-audio");
-const resetButton = document.querySelector("#reset-button");
+function getElement<K extends keyof UIElements>(id: K): UIElements[K] {
+  const element = document.getElementById(id);
+  if (!element) throw new Error(`Missing required UI element: #${id}`);
+  return element as UIElements[K];
+}
 
-const directions = {
+const directionSelect = getElement("direction");
+const sourceLanguage = getElement("source-language");
+const targetLanguage = getElement("target-language");
+const sourcePill = getElement("source-pill");
+const targetPill = getElement("target-pill");
+const sourceText = getElement("source-text");
+const characterCount = getElement("character-count");
+const translateButton = getElement("translate-button");
+const translateButtonLabel = getElement("translate-button-label");
+const placeholderContent = getElement("result-placeholder-content");
+const translationOutput = getElement("translation-output");
+const sourceOutput = getElement("source-output");
+const translatedOutput = getElement("translated-output");
+const workspaceStatus = getElement("workspace-status");
+const workspaceStatusText = getElement("workspace-status-text");
+const workspaceStatusIcon = getElement("workspace-status-icon");
+const recordButton = getElement("record-button");
+const stopButton = getElement("stop-button");
+const recordingStatus = getElement("recording-status");
+const recordingIndicator = getElement("recording-indicator");
+const speechSubmitButton = getElement("speech-submit-button");
+const speechSubmitLabel = getElement("speech-submit-label");
+const audioStatus = getElement("audio-status");
+const audioToggleButton = getElement("audio-toggle-button");
+const audioToggleLabel = getElement("audio-toggle-label");
+const audioReplayButton = getElement("audio-replay-button");
+const translatedAudio = getElement("translated-audio");
+const resetButton = getElement("reset-button");
+
+const directions: Record<string, {
+  source: string;
+  target: string;
+  targetCode: string;
+  sourcePill: string;
+  targetPill: string;
+  placeholder: string;
+}> = {
   "en-to-hi": {
     source: "English",
     target: "हिन्दी",
@@ -58,33 +100,33 @@ const supportedAudioTypes = new Set([
 ]);
 
 let activeRequestId = 0;
-let activeController = null;
+let activeController: AbortController | null = null;
 let speechRequestId = 0;
-let speechController = null;
+let speechController: AbortController | null = null;
 let speechProcessing = false;
-let mediaStream = null;
-let mediaRecorder = null;
-let recordingChunks = [];
-let capturedAudio = null;
+let mediaStream: MediaStream | null = null;
+let mediaRecorder: MediaRecorder | null = null;
+let recordingChunks: Blob[] = [];
+let capturedAudio: Blob | null = null;
 let recordingSessionId = 0;
 let recordingActive = false;
 let recordingFinalizing = false;
 let requestingMicrophone = false;
-let translatedAudioUrl = null;
+let translatedAudioUrl: string | null = null;
 
-function setRecordingStatus(message, state = "info") {
+function setRecordingStatus(message: string, state = "info") {
   recordingStatus.textContent = message;
   recordingStatus.dataset.state = state;
 }
 
-function stopMediaTracks(stream) {
+function stopMediaTracks(stream: MediaStream | null) {
   if (!stream) return;
   for (const track of stream.getTracks()) {
     track.stop();
   }
 }
 
-function stopMediaRecorder(recorder) {
+function stopMediaRecorder(recorder: MediaRecorder | null) {
   if (!recorder || recorder.state === "inactive") return true;
   try {
     recorder.stop();
@@ -108,7 +150,7 @@ function updateRecordingControls() {
     recordingFinalizing;
 }
 
-function microphoneErrorMessage(error) {
+function microphoneErrorMessage(error: { name?: string } | null) {
   if (error?.name === "NotAllowedError" || error?.name === "SecurityError") {
     return "Microphone access was blocked. Allow microphone access for this site in your browser settings, then try again.";
   }
@@ -287,7 +329,7 @@ function updateInput() {
     activeController !== null;
 }
 
-function setStatus(message, state = "info") {
+function setStatus(message: string, state = "info") {
   workspaceStatusText.textContent = message;
   workspaceStatus.dataset.state = state;
   workspaceStatusIcon.textContent =
@@ -304,7 +346,8 @@ function updateAudioControls() {
   );
   audioToggleButton.title = isPlaying ? "Pause translated audio" : "Play translated audio";
   audioToggleLabel.textContent = isPlaying ? "Pause" : "Play";
-  audioToggleButton.querySelector("span").textContent = isPlaying ? "Ⅱ" : "▶";
+  const audioToggleIcon = audioToggleButton.querySelector("span");
+  if (audioToggleIcon) audioToggleIcon.textContent = isPlaying ? "Ⅱ" : "▶";
   audioReplayButton.disabled = !hasAudio;
   audioReplayButton.title = hasAudio
     ? "Replay translated audio"
@@ -322,7 +365,7 @@ function releaseTranslatedAudio() {
   updateAudioControls();
 }
 
-function setTranslatedAudio(audioBlob) {
+function setTranslatedAudio(audioBlob: Blob) {
   releaseTranslatedAudio();
   translatedAudioUrl = URL.createObjectURL(audioBlob);
   translatedAudio.src = translatedAudioUrl;
@@ -331,7 +374,7 @@ function setTranslatedAudio(audioBlob) {
   updateAudioControls();
 }
 
-function playbackErrorMessage(error) {
+function playbackErrorMessage(error: { name?: string } | null) {
   if (error?.name === "NotAllowedError") {
     return "The browser blocked audio playback. Select Play again to retry.";
   }
@@ -343,7 +386,7 @@ function playbackErrorMessage(error) {
 
 function reportAudioElementError() {
   if (!translatedAudioUrl || !translatedAudio.error) return;
-  const messages = {
+  const messages: Record<number, string> = {
     2: "Generated audio could not be loaded. Check your connection and try the translation again.",
     3: "Generated audio could not be decoded. Try another browser or regenerate the translation.",
     4: "This browser cannot play the generated audio format. Try another browser or regenerate it.",
@@ -380,15 +423,8 @@ function toggleTranslatedAudio() {
   playTranslatedAudio();
 }
 
-function getApiUrl(endpoint = "translate") {
-  if (window.location.protocol === "http:" || window.location.protocol === "https:") {
-    const isLocalHost = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
-    if (isLocalHost && window.location.port !== "8000") {
-      return `http://127.0.0.1:8000/api/${endpoint}`;
-    }
-    return `${window.location.origin}/api/${endpoint}`;
-  }
-  return `http://127.0.0.1:8000/api/${endpoint}`;
+function getApiUrl(endpoint = "translate"): string {
+  return `/api/${endpoint}`;
 }
 
 function clearTranslationOutput() {
@@ -432,7 +468,7 @@ function cancelTextRequest() {
   updateRecordingControls();
 }
 
-function decodeMetadataHeader(response, name) {
+function decodeMetadataHeader(response: Response, name: string): string | null {
   const value = response.headers.get(name);
   if (!value) return null;
   try {
@@ -442,7 +478,7 @@ function decodeMetadataHeader(response, name) {
   }
 }
 
-async function getApiError(response) {
+async function getApiError(response: Response): Promise<string> {
   try {
     const data = await response.json();
     return typeof data?.message === "string" && data.message.trim()
@@ -480,7 +516,7 @@ async function translateRecording() {
   const formData = new FormData();
   let receivedMetadata = false;
   const mediaType = (audio.type || "audio/webm").split(";", 1)[0].toLowerCase();
-  const extensions = {
+  const extensions: Record<string, string> = {
     "audio/flac": "flac",
     "audio/mp4": "mp4",
     "audio/mpeg": "mp3",
@@ -513,8 +549,12 @@ async function translateRecording() {
     translatedOutput.lang = direction === "en-to-hi" ? "hi" : "en";
     receivedMetadata = true;
 
-    const contentType = response.headers.get("Content-Type")?.split(";", 1)[0].trim().toLowerCase();
-    if (!supportedAudioTypes.has(contentType)) {
+    const contentType = response.headers
+      .get("Content-Type")
+      ?.split(";", 1)[0]
+      .trim()
+      .toLowerCase();
+    if (!contentType || !supportedAudioTypes.has(contentType)) {
       throw new Error("The speech service returned an unsupported audio format. Please retry.");
     }
     const audioBlob = await response.blob();

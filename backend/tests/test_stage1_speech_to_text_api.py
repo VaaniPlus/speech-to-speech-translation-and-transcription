@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from app.core.config import Settings
 from app.main import create_app
-from app.providers.stt import STTProviderError, STTResult
+from app.providers.stage1_speech_to_text import STTProviderError, STTResult
 
 
 def wav_bytes() -> bytes:

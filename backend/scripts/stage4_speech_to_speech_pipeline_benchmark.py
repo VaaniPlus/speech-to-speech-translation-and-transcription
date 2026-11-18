@@ -16,25 +16,25 @@ import sys
 import time
 from typing import Any, Callable, Literal
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "backend"))
 
 from app.core.config import Settings, load_settings
-from app.providers.faster_whisper_stt import FasterWhisperSTTProvider
-from app.providers.indictrans2_translation import IndicTrans2TranslationProvider
-from app.providers.kokoro_tts import KokoroTTSProvider
-from app.providers.stt import (
+from app.providers.stage1_speech_to_text_faster_whisper import FasterWhisperSTTProvider
+from app.providers.stage2_text_to_text_translation_indictrans2 import IndicTrans2TranslationProvider
+from app.providers.stage3_text_to_speech_kokoro import KokoroTTSProvider
+from app.providers.stage1_speech_to_text import (
     AudioInput,
     STTProvider,
     STTProviderError,
     STTResult,
 )
-from app.providers.translation import (
+from app.providers.stage2_text_to_text_translation import (
     TranslationProvider,
     TranslationProviderError,
     TranslationResult,
 )
-from app.providers.tts import (
+from app.providers.stage3_text_to_speech import (
     ManagedAudioArtifact,
     TTSProvider,
     TTSProviderError,

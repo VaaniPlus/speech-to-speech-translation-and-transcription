@@ -9,9 +9,11 @@ The documented application routes are `GET /api/health`,
 
 ## Development browser access
 
-The API allows browser requests only from `http://localhost:5500` and
-`http://127.0.0.1:5500`, without credentialed CORS. Serve the frontend from
-one of these origins; opaque `Origin: null` requests (including direct
+The API allows browser requests only from the configured loopback development
+origins (`http://localhost:5173`, `http://127.0.0.1:5173`, and the legacy
+port-5500 origins), without credentialed CORS. The Vite development server
+proxies `/api` requests to the backend, so normal frontend use does not require
+cross-origin access. Opaque `Origin: null` requests (including direct
 `file://` pages) are not allowed. The allowed request headers are
 `Content-Type`; exposed response headers include the speech metadata headers,
 `Content-Disposition`, and `X-Request-ID`.
@@ -29,7 +31,7 @@ Successful response (`200 OK`):
 }
 ```
 
-Run the API tests from the repository root with `python -m pytest`. These tests
+Run the API tests from the repository root with `uv run --project backend pytest`. These tests
 use FastAPI's in-process test client and do not require model downloads or a
 GPU.
 

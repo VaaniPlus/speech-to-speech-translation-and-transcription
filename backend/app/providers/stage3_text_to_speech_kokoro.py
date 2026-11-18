@@ -10,7 +10,7 @@ from collections.abc import Callable
 from io import BytesIO
 from typing import Any
 
-from app.providers.tts import TTSProviderError, TTSResult
+from app.providers.stage3_text_to_speech import TTSProviderError, TTSResult
 
 LANGUAGE_CONFIGS: dict[str, tuple[str, str]] = {
     "en": ("a", "af_heart"),
@@ -56,7 +56,7 @@ class KokoroTTSProvider:
                 )
         except ImportError as error:
             raise TTSProviderError(
-                "Kokoro dependencies are not installed; install requirements-ml.txt"
+                "Kokoro dependencies are not installed; run `uv sync --extra ml` from backend/"
             ) from error
         except Exception as error:
             raise TTSProviderError("The TTS model could not be loaded") from error

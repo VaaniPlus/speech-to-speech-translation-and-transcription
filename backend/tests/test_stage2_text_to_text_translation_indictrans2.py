@@ -4,8 +4,8 @@ from contextlib import nullcontext
 
 import pytest
 
-from app.providers.indictrans2_translation import IndicTrans2TranslationProvider
-from app.providers.translation import TranslationProviderError
+from app.providers.stage2_text_to_text_translation_indictrans2 import IndicTrans2TranslationProvider
+from app.providers.stage2_text_to_text_translation import TranslationProviderError
 from app.schemas.translation import LANGUAGES_BY_DIRECTION
 
 

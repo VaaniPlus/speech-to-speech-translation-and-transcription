@@ -5,8 +5,11 @@ from pathlib import Path
 
 import pytest
 
-from app.providers.faster_whisper_stt import FasterWhisperSTTProvider
-from app.providers.stt import AudioInput, STTProviderError, STTResult
+from app.providers.stage1_speech_to_text_faster_whisper import (
+    FasterWhisperSTTProvider,
+    configure_cuda_dll_paths,
+)
+from app.providers.stage1_speech_to_text import AudioInput, STTProviderError, STTResult
 
 
 class FakeSegment:
@@ -31,6 +34,32 @@ class FakeWhisperModel:
 def fake_loader(*args, **kwargs):
     del args, kwargs
     return FakeWhisperModel()
+
+
+def test_configure_cuda_dll_paths_returns_sorted_existing_directories(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    bin_directory = tmp_path / "nvidia" / "cublas" / "bin"
+    bin_directory.mkdir(parents=True)
+    monkeypatch.setattr("app.providers.stage1_speech_to_text_faster_whisper.sys.platform", "win32")
+    monkeypatch.setattr(
+        "app.providers.stage1_speech_to_text_faster_whisper.sys.prefix",
+        str(tmp_path),
+    )
+    monkeypatch.setattr(
+        "app.providers.stage1_speech_to_text_faster_whisper.glob.glob",
+        lambda pattern: [str(bin_directory)],
+    )
+    monkeypatch.setattr(
+        "app.providers.stage1_speech_to_text_faster_whisper.os.add_dll_directory",
+        lambda path: None,
+        raising=False,
+    )
+
+    directories = configure_cuda_dll_paths()
+
+    assert directories == [bin_directory.resolve()]
 
 
 def test_adapter_returns_typed_result_without_loading_ml_package() -> None:

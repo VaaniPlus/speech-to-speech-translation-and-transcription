@@ -2,16 +2,16 @@
 
 ## Default automated suite
 
-From the repository root, activate the project virtual environment and run:
+From the repository root, run:
 
 ```powershell
-python -m pytest
+uv run --project backend pytest
 ```
 
 For just the end-to-end speech API cases:
 
 ```powershell
-python -m pytest backend/tests/test_speech_translation_api.py
+uv run --project backend pytest backend/tests/test_speech_translation_api.py
 ```
 
 The default suite uses fake providers and FastAPI's in-process test client. It

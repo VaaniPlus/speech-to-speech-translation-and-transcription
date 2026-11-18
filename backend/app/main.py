@@ -22,22 +22,22 @@ from app.core.logging_config import (
     reset_request_id,
     set_request_id,
 )
-from app.providers.fake import (
+from app.providers.fake_providers import (
     FakeSTTProvider,
     FakeTranslationProvider,
     FakeTTSProvider,
 )
-from app.providers.faster_whisper_stt import FasterWhisperSTTProvider
-from app.providers.indictrans2_translation import IndicTrans2TranslationProvider
-from app.providers.marian_translation import MarianTranslationProvider
-from app.providers.kokoro_tts import KokoroTTSProvider
-from app.providers.stt import STTProvider
-from app.providers.translation import TranslationProvider
-from app.providers.tts import TTSProvider
+from app.providers.stage1_speech_to_text_faster_whisper import FasterWhisperSTTProvider
+from app.providers.stage2_text_to_text_translation_indictrans2 import IndicTrans2TranslationProvider
+from app.providers.stage2_text_to_text_translation_marian import MarianTranslationProvider
+from app.providers.stage3_text_to_speech_kokoro import KokoroTTSProvider
+from app.providers.stage1_speech_to_text import STTProvider
+from app.providers.stage2_text_to_text_translation import TranslationProvider
+from app.providers.stage3_text_to_speech import TTSProvider
 from app.schemas.translation import ErrorResponse, ErrorStage
-from app.services.speech_to_text_service import SpeechToTextServiceError
-from app.services.speech_translation_service import SpeechTranslationServiceError
-from app.services.translation_service import TranslationServiceError
+from app.services.stage1_speech_to_text_service import SpeechToTextServiceError
+from app.services.stage4_speech_to_speech_pipeline_service import SpeechTranslationServiceError
+from app.services.stage2_text_to_text_translation_service import TranslationServiceError
 from app.utils.audio import AudioInputError
 
 logger = logging.getLogger(__name__)
@@ -114,6 +114,9 @@ def create_app(
             "http://localhost:5500",
             "http://127.0.0.1:5500",
             "http://[::1]:5500",
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://[::1]:5173",
         ],
         allow_methods=["GET", "POST"],
         allow_headers=["Content-Type"],

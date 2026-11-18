@@ -1,25 +1,33 @@
 <div align="center">
 
-# Speech-to-Speech Translation and Transcription
+# VaaniPlus
 
-### Local-first speech translation and transcription for English and Hindi
+### Speech translation and transcription for English and Hindi
 
-![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)
-![Language pair](https://img.shields.io/badge/Language-English%20%E2%86%94%20Hindi-4C8EDA)
-![Local-first](https://img.shields.io/badge/Processing-Local--first-2E8B57)
+### Translate speech. Preserve meaning. Keep it local.
 
-[Overview](#scope) · [User guide](frontend/README.md) · [How it works](docs/architecture.md) · [Setup](#getting-started) · [API docs](docs/api.md) ·
-[Final demo](docs/final-demo-script.md) · [Handoff](docs/final-handoff.md)
+![Frontend](https://img.shields.io/badge/FRONTEND-Vite%20%2B%20TypeScript-646cff?style=for-the-badge&logo=vite&logoColor=white)
+![Backend](https://img.shields.io/badge/BACKEND-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![Runtime](https://img.shields.io/badge/RUNTIME-uv-7c3aed?style=for-the-badge)
+![STT](https://img.shields.io/badge/STT-Faster--Whisper-111827?style=for-the-badge)
+![Faster-Whisper](https://img.shields.io/badge/SPEECH_TO_TEXT-Faster--Whisper-2563EB?style=for-the-badge)
+![AI4India](https://img.shields.io/badge/TRANSLATION-AI4India-FF9933?style=for-the-badge)
+![Kokoro](https://img.shields.io/badge/TEXT_TO_SPEECH-Kokoro-EC4899?style=for-the-badge)
+![Translation](https://img.shields.io/badge/TRANSLATION-IndicTrans2%20%7C%20MarianMT-f97316?style=for-the-badge)
+![TTS](https://img.shields.io/badge/TTS-Kokoro-ec4899?style=for-the-badge)
+![Model hosting](https://img.shields.io/badge/MODELS-Hugging%20Face-facc15?style=for-the-badge&logo=huggingface&logoColor=black)
+
+VaaniPlus is a local-first browser application for English ↔ Hindi speech
+translation and transcription. The vanilla TypeScript frontend provides
+microphone capture, typed-text input, result display, and audio playback. The
+FastAPI backend coordinates replaceable STT, translation, and TTS providers
+through a privacy-focused local pipeline.
+
+[Overview](#scope) · [User guide](frontend/README.md) · [How it works](docs/architecture.md) · [Setup](#getting-started) · [API docs](docs/api.md) · [Final demo](docs/final-demo-script.md) · [Handoff](docs/final-handoff.md)
 
 </div>
 
 ---
-
-A browser-based application that accepts microphone audio or typed text and
-translates in two directions: English → Hindi and Hindi → English. The browser
-displays the source transcript and translated text and can play generated
-target-language audio.
 
 ## Scope
 
@@ -31,21 +39,24 @@ and approves that integration.
 
 ## Repository layout
 
-- `backend/` — FastAPI application, provider boundaries, service logic,
-  schemas, and backend tests.
-- `frontend/` — browser UI, styles, and client-side interaction code.
+- `backend/` — standalone Python project with its own dependencies, FastAPI
+  application, provider boundaries, service logic, schemas, and tests. See
+  [backend setup](backend/README.md).
+- `frontend/` — standalone Vite-powered vanilla TypeScript browser UI and
+  styles. See the [frontend setup guide](frontend/README.md).
 - `docs/` — requirements, architecture, API, testing, and demonstration
   guidance. See [requirements and acceptance tests](docs/requirements.md)
   and [architecture and provider boundaries](docs/architecture.md). The
   [final demo script](docs/final-demo-script.md) and
   [handoff](docs/final-handoff.md) record release readiness.
+- `data/` — evaluation datasets used for local validation.
 - `scripts/` — local development and Windows setup helpers.
-- `IMPLEMENTATION.md` — the Scrum implementation contract and backlog
-  for the full project.
+  Use `scripts/run_dev.ps1` to start both applications.
 
 ## Getting started
 
-The repository is designed to work on Windows with Python 3.11.
+The backend and tests use Python 3.11; the Vite frontend requires Node.js and
+npm.
 For a complete clean-clone walkthrough, real model setup, GPU fallback, and
 troubleshooting, see the [Windows setup guide](docs/windows-setup.md).
 
@@ -55,24 +66,25 @@ troubleshooting, see the [Windows setup guide](docs/windows-setup.md).
 git clone https://github.com/VaaniPlus/speech-to-speech-translation-and-transcription.git
 cd speech-to-speech-translation-and-transcription
 powershell -ExecutionPolicy Bypass -File .\scripts\setup_windows.ps1
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-python -m pytest
+uv run --project backend pytest
 ```
 
-`setup_windows.ps1` requires Python 3.11, creates `.venv`, and installs dependencies.
-The core neural model packages (`torch`, `transformers`, `sentencepiece`, `faster-whisper`) are included in `requirements.txt` as pre-built wheels that require no C++ compiler.
+`setup_windows.ps1` uses uv to sync the backend project into `backend/.venv`.
+To install backend dependencies directly from its folder, see the
+[backend setup guide](backend/README.md). Real-model packages are optional;
+install them with `uv sync --project backend --extra ml` only when you plan to
+run real inference.
 
 ### 2. Configure the Environment
 
 Copy the example environment configuration:
 
 ```powershell
-Copy-Item .env.example .env
+Copy-Item backend/.env.example backend/.env
 ```
 
 Key environment options in `.env`:
-- `PROVIDER_MODE=real` (default in `.env.example`): Uses real local neural translation (MarianMT / IndicTrans2). Set to `mock` if you prefer offline deterministic placeholders.
+- `PROVIDER_MODE=real` (configured by `backend/.env.example`): Uses real local neural translation (MarianMT / IndicTrans2). Set to `mock` if you prefer offline deterministic placeholders.
 - `DEVICE=cpu`: CPU inference mode (or `cuda` if compatible NVIDIA GPU is available).
 - `STT_COMPUTE_TYPE=int8`: 8-bit quantized compute for CPU-friendly STT inference.
 - `PROVIDER_TIMEOUT_SECONDS=300`: Timeout for provider calls (allows time for first-time model downloads).
@@ -85,8 +97,7 @@ Running the application requires **two separate PowerShell terminals** simultane
 #### Terminal 1 — Start the Backend API (Port 8000)
 
 ```powershell
-.\.venv\Scripts\Activate.ps1
-python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000
+uv run --project backend --directory backend uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
 Verify backend health at: <http://127.0.0.1:8000/api/health>  
@@ -94,24 +105,26 @@ Interactive Swagger docs: <http://127.0.0.1:8000/docs>
 
 > **Note on First Run**: The first translation request will automatically download the Helsinki-NLP MarianMT model (~300 MB) from Hugging Face into `models/`. Subsequent translations run entirely locally and return instantly.
 
-#### Terminal 2 — Start the Frontend Server (Port 5500)
+#### Terminal 2 — Start the Vite Frontend (Port 5173)
 
 ```powershell
-.\.venv\Scripts\Activate.ps1
-python -m http.server 5500 --directory frontend
+Set-Location .\frontend
+npm ci
+npm run dev
 ```
 
 #### Terminal 3 / Browser — Open the UI
 
-Open your browser to:
-<http://localhost:5500>
+Open your browser to <http://127.0.0.1:5173>. Vite proxies frontend `/api`
+requests to the backend on port 8000.
 
-> **Important**: Do not open `frontend/index.html` directly via `file://`. Browser microphone capture and CORS API requests require serving over loopback HTTP (`http://localhost:5500` or `http://127.0.0.1:5500`).
+> **Important**: Do not open `frontend/index.html` directly via `file://`.
+> Browser microphone capture requires serving over loopback HTTP.
 
 ### 4. Running Tests
 
 ```powershell
-python -m pytest
+uv run --project backend pytest
 ```
 
 The default suite uses fake providers and does not download model weights. See
@@ -120,7 +133,7 @@ The default suite uses fake providers and does not download model weights. See
 
 ### Latest Windows acceptance run (2026-11-14)
 
-- `python -m pytest`: 129 passed, 1 skipped. The skip is the opt-in real
+- `uv run --project backend pytest`: 129 passed, 1 skipped. The skip is the opt-in real
   Faster-Whisper smoke test, which requires a recording and model inference.
 - Typed-text and speech workflows passed in both directions with mock
   providers. Speech UI checks used synthetic WAV data; microphone denial was
@@ -161,8 +174,8 @@ branch protection must be enabled in GitHub settings by an administrator.
 ## Sprint checklists
 
 Track each Scrum item here. The Scrum IDs, Jira keys, acceptance criteria,
-and release checkpoint steps are maintained in
-[IMPLEMENTATION.md](IMPLEMENTATION.md).
+and sprint allocations are maintained in [Jira.csv](docs/Jira.csv); acceptance
+criteria are also documented in [requirements](docs/requirements.md).
 
 ### Sprint 1 — Foundation, requirements, and project skeleton
 

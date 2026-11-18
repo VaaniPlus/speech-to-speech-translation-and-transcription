@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from app.providers.translation import (
+from app.providers.stage2_text_to_text_translation import (
     TranslationProviderError,
     TranslationResult,
 )
@@ -98,7 +98,8 @@ class IndicTrans2TranslationProvider:
             raise
         except ImportError as error:
             raise TranslationProviderError(
-                "IndicTrans2 dependencies are not installed; install requirements-ml.txt"
+                "IndicTrans2 dependencies are not installed; run `uv sync --extra ml` "
+                "from backend/ and install IndicTransToolkit separately"
             ) from error
         except Exception as error:
             raise TranslationProviderError("The translation model could not be loaded") from error

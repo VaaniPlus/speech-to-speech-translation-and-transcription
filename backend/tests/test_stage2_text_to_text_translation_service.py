@@ -5,12 +5,12 @@ import logging
 
 import pytest
 
-from app.providers.translation import (
+from app.providers.stage2_text_to_text_translation import (
     TranslationProviderError,
     TranslationResult,
 )
 from app.schemas.translation import TranslationRequest
-from app.services.translation_service import (
+from app.services.stage2_text_to_text_translation_service import (
     TranslationFailed,
     TranslationProviderUnavailable,
     translate_text,
@@ -136,7 +136,7 @@ def test_translation_service_logs_no_source_text(caplog: pytest.LogCaptureFixtur
     provider = FakeProvider("नमस्ते")
     private_text = "PRIVATE SOURCE SENTENCE"
 
-    with caplog.at_level(logging.INFO, logger="app.services.translation_service"):
+    with caplog.at_level(logging.INFO, logger="app.services.stage2_text_to_text_translation_service"):
         asyncio.run(
             translate_text(
                 TranslationRequest(direction="en-to-hi", source_text=private_text),

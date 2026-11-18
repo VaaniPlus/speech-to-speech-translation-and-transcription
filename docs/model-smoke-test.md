@@ -1,6 +1,6 @@
 # Optional local-model speech smoke test
 
-This manual test is separate from `python -m pytest`. It runs the configured
+This manual test is separate from `uv run --project backend pytest`. It runs the configured
 real STT, translation, and TTS providers through the browser and may download
 large model weights on first use. Run it only in an approved environment with
 enough disk space and permission to download/cache the selected models. Mock
@@ -8,21 +8,13 @@ provider output is not real speech and must not be recorded as a model result.
 
 ## Prerequisites
 
-- Python 3.11 and the repository virtual environment are set up.
-- A microphone and a supported browser are available. Serve the frontend at
-  `http://localhost:5500` or `http://127.0.0.1:5500`; these are the only
-  development CORS origins allowed by the API.
+- uv and the backend project are set up with `uv sync --project backend --extra ml`.
+- Node.js and npm are installed. A microphone and a supported browser are
+  available. Run the Vite frontend at `http://127.0.0.1:5173`.
 - The Windows eSpeak NG runtime required by Kokoro is installed. See
   [TTS model setup](tts-model-selection.md#windows-installation) for the
   project-specific setup notes.
 - Model cache storage is outside the Git working tree.
-
-The optional model packages are listed in `requirements-ml.txt`. Install them
-only in the environment intended for real inference:
-
-```powershell
-python -m pip install -r requirements-ml.txt
-```
 
 ## Run the real providers
 
@@ -37,7 +29,7 @@ $env:DEVICE = "cpu"
 $env:STT_COMPUTE_TYPE = "int8"
 $env:MODEL_CACHE_DIR = "$env:LOCALAPPDATA\VaaniPlus\models"
 New-Item -ItemType Directory -Force $env:MODEL_CACHE_DIR | Out-Null
-python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000
+uv run --project backend --directory backend uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
 Keep this API process running. Model providers load lazily, so the first
@@ -45,13 +37,15 @@ request for a direction can include model initialization and may take much
 longer than subsequent requests. The browser shows the request's processing
 state during that time. Do not start duplicate requests while waiting.
 
-In a second PowerShell window from the repository root, serve the frontend:
+In a second PowerShell window, start the Vite frontend:
 
 ```powershell
-python -m http.server 5500 --directory frontend
+Set-Location .\frontend
+npm ci
+npm run dev
 ```
 
-Open `http://localhost:5500` in the browser. Confirm the API responds at
+Open `http://127.0.0.1:5173` in the browser. Confirm the API responds at
 `http://127.0.0.1:8000/api/health`, then test each direction:
 
 1. Select **English to Hindi**, grant microphone access, record a short,

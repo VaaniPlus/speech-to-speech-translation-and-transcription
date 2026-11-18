@@ -5,8 +5,8 @@ import wave
 
 import pytest
 
-from app.providers.kokoro_tts import KokoroTTSProvider
-from app.providers.tts import TTSProviderError, TTSResult
+from app.providers.stage3_text_to_speech_kokoro import KokoroTTSProvider
+from app.providers.stage3_text_to_speech import TTSProviderError, TTSResult
 
 
 class FakeAudio:

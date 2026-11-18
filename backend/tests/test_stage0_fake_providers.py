@@ -4,12 +4,12 @@ from fastapi.testclient import TestClient
 
 from app.core.config import Settings
 from app.main import create_app
-from app.providers.fake import FakeSTTProvider, FakeTTSProvider, FakeTranslationProvider
-from app.providers.faster_whisper_stt import FasterWhisperSTTProvider
-from app.providers.indictrans2_translation import IndicTrans2TranslationProvider
-from app.providers.marian_translation import MarianTranslationProvider
-from app.providers.kokoro_tts import KokoroTTSProvider
-from app.providers.stt import AudioInput
+from app.providers.fake_providers import FakeSTTProvider, FakeTTSProvider, FakeTranslationProvider
+from app.providers.stage1_speech_to_text_faster_whisper import FasterWhisperSTTProvider
+from app.providers.stage2_text_to_text_translation_indictrans2 import IndicTrans2TranslationProvider
+from app.providers.stage2_text_to_text_translation_marian import MarianTranslationProvider
+from app.providers.stage3_text_to_speech_kokoro import KokoroTTSProvider
+from app.providers.stage1_speech_to_text import AudioInput
 
 
 def test_fake_providers_are_deterministic_and_marked_as_mock_output() -> None:

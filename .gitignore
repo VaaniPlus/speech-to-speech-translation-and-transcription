@@ -20,6 +20,8 @@ htmlcov/
 build/
 dist/
 *.egg-info/
+node_modules/
+.vite/
 
 # Downloaded models and generated media
 models/

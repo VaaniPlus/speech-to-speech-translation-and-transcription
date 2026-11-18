@@ -19,7 +19,7 @@ For this Python 3.11 project, install the optional model dependency only in an
 environment that will run a real STT provider:
 
 ```powershell
-python -m pip install -r requirements-ml.txt
+uv sync --project backend --extra ml
 ```
 
 The default test setup does not install this dependency, does not load a model,

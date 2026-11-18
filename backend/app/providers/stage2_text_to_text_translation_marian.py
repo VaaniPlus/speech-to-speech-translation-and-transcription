@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from app.providers.translation import (
+from app.providers.stage2_text_to_text_translation import (
     TranslationProviderError,
     TranslationResult,
 )

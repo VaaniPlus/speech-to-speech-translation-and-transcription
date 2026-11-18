@@ -10,7 +10,7 @@ The default mock mode uses deterministic placeholders and makes no model calls.
 
 ```mermaid
 flowchart LR
-    UI["Browser UI<br/>localhost:5500<br/>typed text, microphone, playback"]
+    UI["Vite + vanilla TypeScript UI<br/>127.0.0.1:5173<br/>typed text, microphone, playback"]
     API["FastAPI<br/>127.0.0.1:8000<br/>CORS, request IDs, validation"]
 
     TextRoute["POST /api/translate"]
@@ -143,7 +143,7 @@ are recorded in [TTS model selection](tts-model-selection.md).
 
 ```text
 Browser
-  → POST /api/translate (direction, text)
+  → POST /api/translate (direction, text; Vite proxies to port 8000)
   → route validation
   → translation service
   → translation provider
@@ -222,8 +222,9 @@ remain outside Git.
   providers run locally, while first-use model downloads contact their
   configured hosting sources;
 - upload size/type limits and temporary-file cleanup are enforced;
-- CORS allows only `http://localhost:5500` and `http://127.0.0.1:5500` in
-  development; opaque `Origin: null` and other origins are not allowed;
+- Vite proxies frontend `/api` requests to the local API; backend CORS permits
+  only configured loopback development origins and rejects opaque
+  `Origin: null`;
 - arbitrary client filenames and filesystem paths are never accepted or reused;
 - secrets and environment-specific values stay outside Git; and
 - operational logs contain stage timing and outcomes rather than raw payloads.

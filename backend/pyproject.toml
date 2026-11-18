@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "amtt-backend"
+version = "0.1.0"
+description = "Local-first English and Hindi speech translation backend"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "fastapi==0.115.12",
+  "uvicorn[standard]==0.34.2",
+  "pydantic==2.11.4",
+  "pydantic-settings==2.9.1",
+  "python-multipart==0.0.20",
+]
+
+[project.optional-dependencies]
+ml = [
+  "faster-whisper>=1.1.0,<2",
+  "sounddevice>=0.5.0,<1",
+  "numpy>=1.26.0,<3",
+  "torch>=2.1.0,<3.0.0",
+  "transformers>=4.40.0",
+  "sentencepiece>=0.2.0,<1.0.0",
+  "safetensors>=0.4.0,<1.0.0",
+  "kokoro>=0.9.4,<1",
+  "soundfile>=0.13,<1",
+]
+
+[dependency-groups]
+dev = [
+  "httpx==0.28.1",
+  "pytest==8.3.5",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", ".."]
+addopts = "-ra"

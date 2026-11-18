@@ -12,19 +12,18 @@ must be labeled as such. For a timed presenter walkthrough, see the
 - [ ] The backend starts successfully and API documentation is reachable.
 - [ ] The frontend loads on a supported desktop browser.
 - [ ] Automated tests run without model downloads or GPU access.
-- [ ] Browser is opened at `http://localhost:5500` or
-  `http://127.0.0.1:5500`; direct `file://` access is not supported.
+- [ ] Browser is opened at `http://127.0.0.1:5173`; direct `file://` access
+  is not supported.
 - [ ] Microphone permission is reset before testing the permission flow.
 
 ## Core text pipeline
 
 ### Typed-text UI setup
 
-1. From the repository root, activate `.venv` and start the mock backend with
-   `python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000`.
-2. In another repository-root terminal, serve the frontend with
-   `python -m http.server 5500 --directory frontend`, then open
-   `http://localhost:5500`.
+1. From the repository root, sync and start the mock backend with
+   `uv run --project backend --directory backend uvicorn app.main:app --host 127.0.0.1 --port 8000`.
+2. In another terminal, run `Set-Location .\frontend; npm ci; npm run dev`,
+   then open `http://127.0.0.1:5173`.
 3. Keep the browser developer tools Network panel open for API checks.
 
 - [ ] Select `en-to-hi`, enter a short English phrase, and click **Translate text**.

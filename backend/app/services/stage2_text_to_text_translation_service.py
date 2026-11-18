@@ -4,7 +4,7 @@ import logging
 import time
 
 from app.core.logging_config import log_event
-from app.providers.translation import (
+from app.providers.stage2_text_to_text_translation import (
     TranslationProvider,
     TranslationProviderError,
     TranslationResult,

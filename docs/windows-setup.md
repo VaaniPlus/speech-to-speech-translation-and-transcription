@@ -1,32 +1,35 @@
 # Windows setup and troubleshooting
 
-This project targets 64-bit Windows and Python 3.11. The regular setup uses
-mock providers, so it does not install machine-learning packages or download
-model weights. Real model setup is optional and described below.
+This project targets 64-bit Windows, uv with Python 3.11, and Node.js 22.12+ (npm).
+The regular setup uses mock providers, so it does not install machine-learning
+packages or download model weights. Real model setup is optional and described
+below.
 
 ## Clean clone and test
 
-Install Git and Python 3.11, then open PowerShell:
+Install Git, [uv](https://docs.astral.sh/uv/getting-started/installation/),
+and Node.js 22.12 or newer, then open PowerShell:
 
 ```powershell
 git clone https://github.com/VaaniPlus/speech-to-speech-translation-and-transcription.git
 Set-Location .\speech-to-speech-translation-and-transcription
 powershell -ExecutionPolicy Bypass -File .\scripts\setup_windows.ps1
-.\.venv\Scripts\Activate.ps1
-python --version
-python -m pytest
+uv run --project backend pytest
 ```
 
-The version command should report Python 3.11. The setup script creates `.venv`
-and installs `requirements-dev.txt` (runtime and test dependencies). The test
-suite uses fake providers and does not need a GPU, model packages, or model
-downloads.
+The setup script runs `uv sync` in `backend/`; uv creates `backend/.venv` with
+the Python 3.11 runtime and test dependencies from `backend/pyproject.toml`.
+The default test suite uses fake providers and does not need a GPU, ML
+dependencies, or model downloads. Node.js provides npm for the separate
+frontend dependencies.
+The backend can also be installed and run directly from `backend/`; see its
+[standalone setup guide](../backend/README.md).
 
 If PowerShell blocks virtual-environment activation, run commands with the
 environment's interpreter directly, for example:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest
+uv run --project backend pytest
 ```
 
 ## Start the application
@@ -34,22 +37,22 @@ environment's interpreter directly, for example:
 In the first PowerShell window, from the repository root:
 
 ```powershell
-.\.venv\Scripts\Activate.ps1
-python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000
+uv run --project backend --directory backend uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-In a second window, also from the repository root:
+In a second window, from the repository root:
 
 ```powershell
-.\.venv\Scripts\Activate.ps1
-python -m http.server 5500 --directory frontend
+Set-Location .\frontend
+npm ci
+npm run dev
 ```
 
-Open <http://localhost:5500>. The API health check is
+Open <http://127.0.0.1:5173>. Vite proxies `/api` requests to the backend at
+`127.0.0.1:8000`. The API health check is
 <http://127.0.0.1:8000/api/health>; interactive API documentation is at
-<http://127.0.0.1:8000/docs>. Serve the frontend over one of the documented
-loopback origins; opening `frontend/index.html` directly as a `file://` page
-is not supported by the CORS policy.
+<http://127.0.0.1:8000/docs>. Opening `frontend/index.html` directly as a
+`file://` page is not supported.
 
 By default, `PROVIDER_MODE=mock` lets you use the UI and API without real
 models. To stop either server, press Ctrl+C in its PowerShell window.
@@ -61,7 +64,7 @@ activated environment, install the packages only when you intend to run real
 inference:
 
 ```powershell
-python -m pip install -r requirements-ml.txt
+uv sync --project backend --extra ml
 ```
 
 This installs Python packages; it does not download the model weights. Real
@@ -106,12 +109,12 @@ Remove-Item Env:MODEL_CACHE_DIR, Env:HF_HOME -ErrorAction SilentlyContinue
 
 ## Configuration reference
 
-Copy `.env.example` to `.env` to persist application settings locally. `.env`
-is ignored by Git; do not put secrets or private data in it.
+Copy `backend/.env.example` to `backend/.env` to persist application settings
+locally. `.env` is ignored by Git; do not put secrets or private data in it.
 
 ```powershell
-Copy-Item .env.example .env
-notepad .env
+Copy-Item backend/.env.example backend/.env
+notepad backend/.env
 ```
 
 Restart the backend after changing `.env` or its process environment so the
@@ -140,7 +143,7 @@ If GPU initialization fails, use `DEVICE=cpu` and `STT_COMPUTE_TYPE=int8`.
 Explicit `DEVICE=cuda` requires a working, compatible CUDA runtime. Faster-
 Whisper GPU use depends on CTranslate2-compatible NVIDIA libraries; follow the
 STT model notes and verify the installed runtime rather than assuming that a
-GPU is usable. The generic `requirements-ml.txt` install does not certify a
+GPU is usable. The backend `ml` extra does not certify a
 CUDA-enabled PyTorch build. For NVIDIA inference, select a PyTorch build that
 matches the installed Windows driver/runtime, then check it in the activated
 environment:
@@ -165,14 +168,15 @@ CUDA/PyTorch and CTranslate2 builds; otherwise use the CPU configuration above.
 
 | Symptom | Resolution |
 |---|---|
-| `py -3.11` is unavailable or setup reports the wrong Python version | Install 64-bit Python 3.11 and verify `py -3.11 --version`; recreate the environment only after checking that no project work is stored in `.venv`. |
-| `No module named uvicorn`, `fastapi`, or `pytest` | Activate `.venv` or use `.\.venv\Scripts\python.exe`, then rerun `powershell -ExecutionPolicy Bypass -File .\scripts\setup_windows.ps1`. |
-| A real provider reports a missing package such as `faster_whisper`, `IndicTransToolkit`, or `kokoro` | Activate `.venv` and install `requirements-ml.txt`. This installs packages, not model weights. |
+| uv cannot find Python 3.11 | Install 64-bit Python 3.11 and verify `uv python find 3.11`; recreate `backend/.venv` with `uv sync --project backend --reinstall`. |
+| `uv` is not recognized | Install uv using the [official instructions](https://docs.astral.sh/uv/getting-started/installation/), then rerun `powershell -ExecutionPolicy Bypass -File .\scripts\setup_windows.ps1`. |
+| `uvicorn`, `fastapi`, or `pytest` is unavailable | Run `uv sync --project backend`, then run commands through `uv run --project backend`. |
+| A real provider reports a missing package such as `faster_whisper` or `kokoro` | Run `uv sync --project backend --extra ml`. This installs packages, not model weights. `IndicTransToolkit` has separate Windows build requirements. |
 | First real request is slow, times out, or cannot find a model | Check network access for the first download, free disk space, `MODEL_CACHE_DIR`/`HF_HOME`, and the API terminal logs. The default timeout is 120 seconds; adjust `PROVIDER_TIMEOUT_SECONDS` only if a longer first load is expected. Avoid duplicate requests while a timed-out provider call may still be running. |
 | CUDA initialization fails, or the GPU is unsupported | Set `DEVICE=cpu` and `STT_COMPUTE_TYPE=int8`, restart the API, and retry. For GPU use, verify that PyTorch and CTranslate2 match the installed NVIDIA driver/runtime. |
 | Kokoro reports an eSpeak or phonemizer error | Install the Windows eSpeak NG runtime described in the [TTS model notes](tts-model-selection.md), then restart PowerShell and the API. |
-| Browser reports a CORS error | Run the frontend at `http://localhost:5500` or `http://127.0.0.1:5500` and the API at `127.0.0.1:8000`. Direct `file://` pages and other ports are not allowed. |
-| Port 8000 or 5500 is already in use | Stop the existing local server before starting another instance. The documented frontend/API origins use these ports. |
+| Browser reports a proxy/API error | Start the backend at `127.0.0.1:8000` and the Vite frontend at `127.0.0.1:5173`; Vite proxies `/api` requests to the backend. |
+| Port 8000 or 5173 is already in use | Stop the existing local server before starting another instance. The documented frontend/API use these ports. |
 
 The application logs request IDs, stage timings, and safe error codes to the
 API terminal. It does not log raw audio or full transcript/translation text by

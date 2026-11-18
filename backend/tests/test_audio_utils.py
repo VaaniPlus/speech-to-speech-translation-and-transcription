@@ -8,7 +8,7 @@ import pytest
 from fastapi import UploadFile
 from starlette.datastructures import Headers
 
-from app.providers.stt import AudioInput
+from app.providers.stage1_speech_to_text import AudioInput
 from app.utils.audio import (
     AudioInputError,
     audio_duration_seconds,

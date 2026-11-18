@@ -3,16 +3,47 @@
 from __future__ import annotations
 
 import math
+import glob
+import os
+import sys
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from app.providers.stt import (
+from app.providers.stage1_speech_to_text import (
     AudioInput,
     STTProviderError,
     STTResult,
 )
 from app.utils.audio import temporary_audio_file
+
+
+def configure_cuda_dll_paths() -> list[Path]:
+    """Add NVIDIA CUDA binary directories to PATH on Windows."""
+    if sys.platform != "win32":
+        return []
+
+    bin_patterns = [
+        str(Path(sys.prefix) / "Lib" / "site-packages" / "nvidia" / "*" / "bin"),
+        str(Path(sys.prefix) / "Lib" / "site-packages" / "nvidia" / "*" / "lib"),
+    ]
+    directories = {
+        Path(path).resolve()
+        for pattern in bin_patterns
+        for path in glob.glob(pattern)
+        if Path(path).is_dir()
+    }
+
+    for directory in directories:
+        os.add_dll_directory(str(directory))
+
+    if directories:
+        existing_path = os.environ.get("PATH", "")
+        os.environ["PATH"] = os.pathsep.join(
+            [*(str(directory) for directory in directories), existing_path]
+        )
+
+    return sorted(directories)
 
 
 class FasterWhisperSTTProvider:
@@ -33,11 +64,18 @@ class FasterWhisperSTTProvider:
         self._model_loader = model_loader
         self._model: Any | None = None
 
+    def load_model(self) -> Any:
+        """Load and return the underlying Faster-Whisper model."""
+        return self._load_model()
+
     def _load_model(self) -> Any:
         if self._model is not None:
             return self._model
 
         try:
+            if self.device.lower() in ("cuda", "gpu", "auto"):
+                configure_cuda_dll_paths()
+
             if self._model_loader is not None:
                 self._model = self._model_loader(
                     self.model_id,
@@ -56,7 +94,7 @@ class FasterWhisperSTTProvider:
                 )
         except ImportError as error:
             raise STTProviderError(
-                "faster-whisper is not installed; install requirements-ml.txt"
+                "faster-whisper is not installed; run `uv sync --extra ml` from backend/"
             ) from error
         except Exception as error:
             raise STTProviderError("The STT model could not be loaded") from error

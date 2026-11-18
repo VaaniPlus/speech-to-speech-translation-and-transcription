@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from app.core.config import Settings
 from app.main import create_app
-from app.providers.translation import TranslationDirection, TranslationProviderError
+from app.providers.stage2_text_to_text_translation import TranslationDirection, TranslationProviderError
 
 
 class FakeTranslationProvider:

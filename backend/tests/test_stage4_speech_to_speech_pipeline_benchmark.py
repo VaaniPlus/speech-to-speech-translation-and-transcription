@@ -5,10 +5,10 @@ import wave
 
 import pytest
 
-from app.providers.stt import AudioInput, STTResult
-from app.providers.translation import TranslationResult
-from app.providers.tts import TTSResult
-from scripts.benchmark_pipeline import (
+from app.providers.stage1_speech_to_text import AudioInput, STTResult
+from app.providers.stage2_text_to_text_translation import TranslationResult
+from app.providers.stage3_text_to_speech import TTSResult
+from scripts.stage4_speech_to_speech_pipeline_benchmark import (
     AudioExample,
     BenchmarkError,
     discover_audio_examples,

@@ -1,7 +1,7 @@
 """Development/test-only deterministic providers; never claim mock output is real."""
 
-from app.providers.stt import AudioInput, STTResult
-from app.providers.tts import TTSResult
+from app.providers.stage1_speech_to_text import AudioInput, STTResult
+from app.providers.stage3_text_to_speech import TTSResult
 
 
 class FakeSTTProvider:
