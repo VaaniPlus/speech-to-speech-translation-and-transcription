@@ -58,6 +58,24 @@ and approves that integration.
 
 ## Getting started
 
+### Quick start
+
+```powershell
+# 1. Set up the backend
+powershell -ExecutionPolicy Bypass -File .\scripts\setup_windows.ps1
+
+# 2. Start the backend
+uv run --project backend --directory backend uvicorn app.main:app --host 127.0.0.1 --port 8000
+
+# 3. Start the frontend in a second terminal
+Set-Location .\frontend
+npm ci
+npm run dev
+```
+
+Open <http://127.0.0.1:5173>. The frontend communicates with the API through
+Vite's `/api` proxy.
+
 The backend and tests use Python 3.11; the Vite frontend requires Node.js and
 npm.
 For a complete clean-clone walkthrough, real model setup, GPU fallback, and
@@ -173,71 +191,3 @@ description. Use the pull request checklist in
 Repository administrators should protect `main` by requiring an approving
 review and preventing force pushes and branch deletion. This repository's
 branch protection must be enabled in GitHub settings by an administrator.
-
-## Sprint checklists
-
-Track each Scrum item here. The Scrum IDs, Jira keys, acceptance criteria,
-and sprint allocations are maintained in [Jira.csv](docs/Jira.csv); acceptance
-criteria are also documented in [requirements](docs/requirements.md).
-
-### Sprint 1 — Foundation, requirements, and project skeleton
-
-- [x] S1-01 / AMTT-1 — Create repository and project baseline.
-- [x] S1-02 / AMTT-2 — Create Jira backlog and four sprints.
-- [x] S1-03 / AMTT-3 — Finalize requirements and acceptance tests.
-- [x] S1-04 / AMTT-4 — Document architecture and provider boundaries.
-- [x] S1-05 / AMTT-5 — Set up Python environment and dependencies.
-- [x] S1-06 / AMTT-6 — Add environment configuration.
-- [x] S1-07 / AMTT-7 — Implement FastAPI application entry point.
-- [x] S1-08 / AMTT-8 — Implement health endpoint and basic API tests.
-- [x] S1-09 / AMTT-9 — Build initial browser UI shell.
-- [x] S1-10 / AMTT-10 — Establish Git branching, PR, and review rules.
-
-Sprint 1 Scrum items are complete. The `v0.1-foundation` release checkpoint
-remains pending until its tag is created and all four members confirm they
-can pull and run the skeleton.
-
-### Sprint 2 — Working text pipeline and model adapters
-
-- [x] S2-01 / AMTT-11 — Define request and response schemas.
-- [x] S2-02 / AMTT-12 — Define STT, translation, and TTS provider interfaces.
-- [x] S2-03 / AMTT-13 — Implement fake providers for development.
-- [x] S2-04 / AMTT-14 — Verify and document the Windows-compatible STT model. See [STT model selection](docs/stt-model-selection.md).
-- [x] S2-05 / AMTT-15 — Implement the faster-whisper STT adapter.
-- [x] S2-06 / AMTT-16 — Verify and document the English↔Hindi translation model. See [translation model selection](docs/translation-model-selection.md).
-- [x] S2-07 / AMTT-17 — Implement the translation provider adapter.
-- [x] S2-08 / AMTT-18 — Implement the text translation service.
-- [x] S2-09 / AMTT-19 — Add `POST /api/translate` endpoint.
-- [x] S2-10 / AMTT-20 — Connect the typed-text UI to the translation API.
-
-Sprint 2 release checkpoint: `v0.2-text-translation`.
-
-### Sprint 3 — Speech input and translated speech output
-
-- [x] S3-01 / AMTT-21 — Verify Windows-compatible English/Hindi TTS options. See [TTS model selection](docs/tts-model-selection.md).
-- [ ] S3-02 / AMTT-22 — Implement TTS provider adapter.
-- [ ] S3-03 / AMTT-23 — Add safe audio input validation and utilities.
-- [ ] S3-04 / AMTT-24 — Add `POST /api/speech-to-text` endpoint.
-- [ ] S3-05 / AMTT-25 — Add `POST /api/speech-translate` orchestration endpoint.
-- [ ] S3-06 / AMTT-26 — Implement browser microphone permission and capture.
-- [ ] S3-07 / AMTT-27 — Upload captured audio and show source transcript.
-- [ ] S3-08 / AMTT-28 — Play generated translated audio.
-- [ ] S3-09 / AMTT-29 — Add cancellation, reset, and duplicate-request protection.
-- [ ] S3-10 / AMTT-30 — Run speech pipeline integration tests.
-
-Sprint 3 release checkpoint: `v0.3-speech-pipeline`.
-
-### Sprint 4 — Quality, reliability, documentation, and final demo
-
-- [ ] S4-01 / AMTT-31 — Improve end-to-end UI states and accessibility.
-- [ ] S4-02 / AMTT-32 — Add request timeout and model failure handling.
-- [ ] S4-03 / AMTT-33 — Add structured logging and timing metrics.
-- [ ] S4-04 / AMTT-34 — Add translation and transcription evaluation set.
-- [ ] S4-05 / AMTT-35 — Add performance and memory benchmark script.
-- [ ] S4-06 / AMTT-36 — Harden input and temporary-file handling.
-- [ ] S4-07 / AMTT-37 — Write Windows setup and troubleshooting guide.
-- [ ] S4-08 / AMTT-38 — Complete API and user documentation.
-- [ ] S4-09 / AMTT-39 — Run full regression and acceptance checklist.
-- [ ] S4-10 / AMTT-40 — Prepare final demo, release tag, and handoff.
-
-Sprint 4 release checkpoint: `v1.0.0`.
