@@ -6,16 +6,19 @@
 
 ### Translate speech. Preserve meaning. Keep it local.
 
-![Frontend](https://img.shields.io/badge/FRONTEND-Vite%20%2B%20TypeScript-646cff?style=for-the-badge&logo=vite&logoColor=white)
-![Backend](https://img.shields.io/badge/BACKEND-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![Runtime](https://img.shields.io/badge/RUNTIME-uv-7c3aed?style=for-the-badge)
-![STT](https://img.shields.io/badge/STT-Faster--Whisper-111827?style=for-the-badge)
-![Faster-Whisper](https://img.shields.io/badge/SPEECH_TO_TEXT-Faster--Whisper-2563EB?style=for-the-badge)
-![AI4India](https://img.shields.io/badge/TRANSLATION-AI4India-FF9933?style=for-the-badge)
-![Kokoro](https://img.shields.io/badge/TEXT_TO_SPEECH-Kokoro-EC4899?style=for-the-badge)
-![Translation](https://img.shields.io/badge/TRANSLATION-IndicTrans2%20%7C%20MarianMT-f97316?style=for-the-badge)
-![TTS](https://img.shields.io/badge/TTS-Kokoro-ec4899?style=for-the-badge)
-![Model hosting](https://img.shields.io/badge/MODELS-Hugging%20Face-facc15?style=for-the-badge&logo=huggingface&logoColor=black)
+<p>
+<img alt="Frontend" src="https://img.shields.io/badge/FRONTEND-Vite%20%2B%20TypeScript-646cff?style=for-the-badge&logo=vite&logoColor=white">
+<img alt="Backend" src="https://img.shields.io/badge/BACKEND-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white">
+<img alt="Runtime" src="https://img.shields.io/badge/RUNTIME-uv-7c3aed?style=for-the-badge">
+</p>
+<p>
+<img alt="Speech to text" src="https://img.shields.io/badge/SPEECH_TO_TEXT-Faster--Whisper-2563EB?style=for-the-badge">
+<img alt="Translation" src="https://img.shields.io/badge/TRANSLATION-AI4India-FF9933?style=for-the-badge">
+<img alt="Text to speech" src="https://img.shields.io/badge/TEXT_TO_SPEECH-Kokoro-EC4899?style=for-the-badge">
+</p>
+<p>
+<img alt="Models" src="https://img.shields.io/badge/MODELS-Hugging%20Face-facc15?style=for-the-badge&logo=huggingface&logoColor=black">
+</p>
 
 VaaniPlus is a local-first browser application for English ↔ Hindi speech
 translation and transcription. The vanilla TypeScript frontend provides
