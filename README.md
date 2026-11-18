@@ -48,6 +48,25 @@ providers.
 
 ---
 
+### Faster-Whisper on Windows
+
+Speech-to-text uses the
+[SYSTRAN faster-whisper project](https://github.com/SYSTRAN/faster-whisper)
+with the Hugging Face model
+[Systran/faster-whisper-small](https://huggingface.co/Systran/faster-whisper-small).
+For GPU-accelerated transcription on Windows, the requirements are:
+
+- an NVIDIA GPU with CUDA support; and
+- [cuDNN 9.x](https://developer.nvidia.com/cudnn) installed on Windows.
+
+Faster-Whisper runs through CTranslate2, so the installed NVIDIA driver and
+CUDA/cuDNN libraries must be compatible with the installed CTranslate2 version.
+**This project uses CPU inference, not GPU acceleration**
+(`DEVICE=cpu`, `STT_COMPUTE_TYPE=int8`).
+To opt into GPU inference, configure a compatible CUDA setup. If CUDA is
+unavailable or fails, use the CPU settings above. See the
+[Windows setup guide](docs/windows-setup.md) for configuration and diagnostics.
+
 ## Scope
 
 This project intentionally supports English and Hindi only. It does not
@@ -165,25 +184,6 @@ The example selects real providers and **MarianMT** for typed English ↔ Hindi
 translation. Its model downloads on the first translation request. See the
 [translation model guide](docs/translation-model-selection.md) for model and
 Windows notes.
-
-### Faster-Whisper on Windows
-
-Speech-to-text uses the
-[SYSTRAN faster-whisper project](https://github.com/SYSTRAN/faster-whisper)
-with the Hugging Face model
-[Systran/faster-whisper-small](https://huggingface.co/Systran/faster-whisper-small).
-For GPU-accelerated transcription on Windows, the requirements are:
-
-- an NVIDIA GPU with CUDA support; and
-- [cuDNN 9.x](https://developer.nvidia.com/cudnn) installed on Windows.
-
-Faster-Whisper runs through CTranslate2, so the installed NVIDIA driver and
-CUDA/cuDNN libraries must be compatible with the installed CTranslate2 version.
-**This project uses CPU inference, not GPU acceleration**
-(`DEVICE=cpu`, `STT_COMPUTE_TYPE=int8`).
-To opt into GPU inference, configure a compatible CUDA setup. If CUDA is
-unavailable or fails, use the CPU settings above. See the
-[Windows setup guide](docs/windows-setup.md) for configuration and diagnostics.
 
 ### Run tests
 
