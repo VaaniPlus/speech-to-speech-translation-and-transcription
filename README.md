@@ -9,6 +9,7 @@
 <p>
 <img alt="Frontend" src="https://img.shields.io/badge/FRONTEND-Vite%20%2B%20TypeScript-646cff?style=for-the-badge&logo=vite&logoColor=white">
 <img alt="Backend" src="https://img.shields.io/badge/BACKEND-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white">
+<img alt="Server" src="https://img.shields.io/badge/SERVER-Uvicorn-2f855a?style=for-the-badge">
 <img alt="Runtime" src="https://img.shields.io/badge/RUNTIME-uv-7c3aed?style=for-the-badge">
 </p>
 <p>
