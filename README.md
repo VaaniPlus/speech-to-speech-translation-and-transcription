@@ -10,11 +10,10 @@
 <img alt="Frontend" src="https://img.shields.io/badge/FRONTEND-Vite%20%2B%20TypeScript-646cff?style=for-the-badge&logo=vite&logoColor=white">
 <img alt="Backend" src="https://img.shields.io/badge/BACKEND-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white">
 <img alt="Server" src="https://img.shields.io/badge/SERVER-Uvicorn-2f855a?style=for-the-badge">
-<img alt="Runtime" src="https://img.shields.io/badge/RUNTIME-uv-7c3aed?style=for-the-badge">
 </p>
 <p>
 <img alt="Speech to text" src="https://img.shields.io/badge/SPEECH_TO_TEXT-Faster--Whisper-2563EB?style=for-the-badge">
-<img alt="Translation" src="https://img.shields.io/badge/TRANSLATION-MarianMT%20(default)-7C3AED?style=for-the-badge">
+<img alt="Translation" src="https://img.shields.io/badge/TRANSLATION-MarianMT-7C3AED?style=for-the-badge">
 <img alt="Text to speech" src="https://img.shields.io/badge/TEXT_TO_SPEECH-Kokoro-EC4899?style=for-the-badge">
 </p>
 <p>
