@@ -249,7 +249,7 @@ h1 span {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 21px;
+  margin-bottom: 17px;
 }
 
 .result-actions {
@@ -290,6 +290,40 @@ h2 {
   font-weight: 700;
   letter-spacing: 0.6px;
   white-space: nowrap;
+}
+
+.input-mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  border: 1px solid #e8ece6;
+  border-radius: 10px;
+  background: #f7f9f6;
+}
+
+.input-mode-switch button {
+  min-height: 35px;
+  border: 0;
+  border-radius: 7px;
+  color: #78857d;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+}
+
+.input-mode-switch button[aria-pressed="true"] {
+  color: var(--green-dark);
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(23 42 38 / 10%);
+}
+
+.input-mode-switch button:hover:not([aria-pressed="true"]) {
+  color: var(--ink);
+  background: rgb(255 255 255 / 65%);
 }
 
 .recording-card {
@@ -354,6 +388,10 @@ h2 {
 @media (prefers-reduced-motion: reduce) {
   .recording-visual.is-recording span {
     animation: none;
+  }
+
+  .input-mode-switch button {
+    transition: none;
   }
 }
 
@@ -520,6 +558,14 @@ textarea::placeholder {
   font-weight: 650;
 }
 
+.input-mode-switch button:focus-visible,
+.reset-button:focus-visible,
+.icon-button:focus-visible,
+.translate-button:focus-visible {
+  outline: 3px solid #e7a07b;
+  outline-offset: 3px;
+}
+
 .translate-button span:first-child {
   color: #b8d5be;
 }
@@ -538,7 +584,7 @@ textarea::placeholder {
 }
 
 .speech-submit-button {
- margin-top: 12px;
+  margin-top: 12px;
 }
 
 .speech-submit-button:disabled {

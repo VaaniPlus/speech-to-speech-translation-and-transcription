@@ -4,6 +4,10 @@ type UIElements = {
   "target-language": HTMLSpanElement;
   "source-pill": HTMLSpanElement;
   "target-pill": HTMLSpanElement;
+  "text-mode-button": HTMLButtonElement;
+  "voice-mode-button": HTMLButtonElement;
+  "text-input-mode": HTMLElement;
+  "voice-input-mode": HTMLElement;
   "source-text": HTMLTextAreaElement;
   "character-count": HTMLSpanElement;
   "translate-button": HTMLButtonElement;
@@ -40,6 +44,10 @@ const sourceLanguage = getElement("source-language");
 const targetLanguage = getElement("target-language");
 const sourcePill = getElement("source-pill");
 const targetPill = getElement("target-pill");
+const textModeButton = getElement("text-mode-button");
+const voiceModeButton = getElement("voice-mode-button");
+const textInputMode = getElement("text-input-mode");
+const voiceInputMode = getElement("voice-input-mode");
 const sourceText = getElement("source-text");
 const characterCount = getElement("character-count");
 const translateButton = getElement("translate-button");
@@ -318,6 +326,14 @@ function updateDirection() {
   targetPill.textContent = direction.targetPill;
   sourceText.placeholder = direction.placeholder;
   updateInput();
+}
+
+function setInputMode(mode: "text" | "voice") {
+  const isTextMode = mode === "text";
+  textModeButton.setAttribute("aria-pressed", String(isTextMode));
+  voiceModeButton.setAttribute("aria-pressed", String(!isTextMode));
+  textInputMode.hidden = !isTextMode;
+  voiceInputMode.hidden = isTextMode;
 }
 
 function updateInput() {
@@ -664,6 +680,8 @@ directionSelect.addEventListener("change", () => {
   setRecordingStatus("Choose Start to allow microphone access");
   setStatus("Direction changed. Ready to translate.", "info");
 });
+textModeButton.addEventListener("click", () => setInputMode("text"));
+voiceModeButton.addEventListener("click", () => setInputMode("voice"));
 sourceText.addEventListener("input", () => {
   updateInput();
   if (workspaceStatus.dataset.state === "error" || workspaceStatus.dataset.state === "success") {

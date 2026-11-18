@@ -1,16 +1,16 @@
 # Backend
 
-The backend is a standalone Python 3.11 uv project. Install uv, then sync the
-API and test dependencies from this directory:
-
-```powershell
-uv sync
-```
-
-Start the API and run its tests from `backend/`:
+The backend is a standalone Python 3.11 uv project. Install uv, then start the
+API from this directory:
 
 ```powershell
 uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+`uv run` creates and syncs the project environment automatically. Run the tests
+from `backend/` with:
+
+```powershell
 uv run pytest
 ```
 

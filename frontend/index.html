@@ -20,7 +20,7 @@
         </a>
         <span class="privacy-note">
           <span class="privacy-dot" aria-hidden="true"></span>
-          Private by design
+          Local-first workspace
         </span>
       </header>
 
@@ -60,51 +60,58 @@
                 <span class="language-pill" id="source-pill">ENGLISH</span>
               </div>
 
-              <div class="recording-card">
-                <div class="recording-visual" id="recording-indicator" aria-hidden="true">
-                  <span></span><span></span><span></span><span></span><span></span>
-                  <span></span><span></span><span></span><span></span>
-                </div>
-                <div class="recording-copy">
-                  <strong>Use your voice</strong>
-                  <span id="recording-status" role="status" aria-live="polite">
-                    Choose Start to allow microphone access
-                  </span>
-                </div>
-                <div class="recording-actions">
-                  <button class="icon-button labeled-icon-button record-button" id="record-button" type="button"
-                    aria-label="Start microphone recording" title="Start microphone recording">
-                    <span aria-hidden="true">●</span><span>Start</span>
-                  </button>
-                  <button class="icon-button labeled-icon-button stop-button" id="stop-button" type="button" disabled
-                    aria-label="Stop microphone recording" title="No recording is in progress">
-                    <span aria-hidden="true">■</span><span>Stop</span>
-                  </button>
-                </div>
+              <div class="input-mode-switch" role="group" aria-label="Choose input method">
+                <button id="text-mode-button" type="button" aria-pressed="true">Type</button>
+                <button id="voice-mode-button" type="button" aria-pressed="false">Voice</button>
               </div>
 
-              <button class="translate-button speech-submit-button" id="speech-submit-button"
-                type="button" disabled>
-                <span aria-hidden="true">✳</span>
-                <span id="speech-submit-label">Translate recording</span>
-                <span aria-hidden="true">→</span>
-              </button>
+              <div id="text-input-mode">
+                <label class="field-label" for="source-text">MESSAGE TO TRANSLATE</label>
+                <textarea id="source-text" name="source-text" rows="5" maxlength="1000"
+                  placeholder="Type something in English…" aria-describedby="input-hint"></textarea>
+                <div class="input-footer">
+                  <span id="input-hint">Sent to your local backend when you choose Translate.</span>
+                  <span id="character-count">0 / 1000</span>
+                </div>
 
-              <div class="or-divider"><span>OR TYPE INSTEAD</span></div>
-
-              <label class="field-label" for="source-text">MESSAGE TO TRANSLATE</label>
-              <textarea id="source-text" name="source-text" rows="5" maxlength="1000"
-                placeholder="Type something in English…" aria-describedby="input-hint"></textarea>
-              <div class="input-footer">
-                <span id="input-hint">Your text stays in this browser preview.</span>
-                <span id="character-count">0 / 1000</span>
+                <button class="translate-button" id="translate-button" type="button" disabled>
+                  <span aria-hidden="true">✳</span>
+                  <span id="translate-button-label">Translate text</span>
+                  <span aria-hidden="true">→</span>
+                </button>
               </div>
 
-              <button class="translate-button" id="translate-button" type="button" disabled>
-                <span aria-hidden="true">✳</span>
-                <span id="translate-button-label">Translate text</span>
-                <span aria-hidden="true">→</span>
-              </button>
+              <div id="voice-input-mode" hidden>
+                <div class="recording-card">
+                  <div class="recording-visual" id="recording-indicator" aria-hidden="true">
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span>
+                  </div>
+                  <div class="recording-copy">
+                    <strong>Speak your message</strong>
+                    <span id="recording-status" role="status" aria-live="polite">
+                      Choose Start to allow microphone access
+                    </span>
+                  </div>
+                  <div class="recording-actions">
+                    <button class="icon-button labeled-icon-button record-button" id="record-button" type="button"
+                      aria-label="Start microphone recording" title="Start microphone recording">
+                      <span aria-hidden="true">●</span><span>Start</span>
+                    </button>
+                    <button class="icon-button labeled-icon-button stop-button" id="stop-button" type="button" disabled
+                      aria-label="Stop microphone recording" title="No recording is in progress">
+                      <span aria-hidden="true">■</span><span>Stop</span>
+                    </button>
+                  </div>
+                </div>
+
+                <button class="translate-button speech-submit-button" id="speech-submit-button"
+                  type="button" disabled>
+                  <span aria-hidden="true">✳</span>
+                  <span id="speech-submit-label">Translate recording</span>
+                  <span aria-hidden="true">→</span>
+                </button>
+              </div>
             </section>
 
             <section class="translation-panel result-panel" aria-labelledby="result-heading">
@@ -171,7 +178,7 @@
           <div class="workspace-footnote" id="workspace-status" data-state="info"
             role="status" aria-live="polite">
             <span class="footnote-icon" id="workspace-status-icon" aria-hidden="true">i</span>
-            <span id="workspace-status-text">Typed translation is ready. Start recording to grant microphone access.</span>
+            <span id="workspace-status-text">Type a message or switch to Voice to record.</span>
           </div>
         </section>
       </main>

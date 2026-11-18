@@ -13,17 +13,13 @@ and Node.js 22.12 or newer, then open PowerShell:
 ```powershell
 git clone https://github.com/VaaniPlus/speech-to-speech-translation-and-transcription.git
 Set-Location .\speech-to-speech-translation-and-transcription
-powershell -ExecutionPolicy Bypass -File .\scripts\setup_windows.ps1
 uv run --project backend pytest
 ```
 
-The setup script runs `uv sync` in `backend/`; uv creates `backend/.venv` with
-the Python 3.11 runtime and test dependencies from `backend/pyproject.toml`.
-The default test suite uses fake providers and does not need a GPU, ML
-dependencies, or model downloads. Node.js provides npm for the separate
-frontend dependencies.
-The backend can also be installed and run directly from `backend/`; see its
-[standalone setup guide](../backend/README.md).
+`uv run` creates and syncs the backend environment automatically. The default
+test suite uses fake providers and does not need a GPU, ML dependencies, or
+model downloads. Node.js provides npm for the separate frontend dependencies.
+See the [backend guide](../backend/README.md) for running the API on its own.
 
 If PowerShell blocks virtual-environment activation, run commands with the
 environment's interpreter directly, for example:
@@ -40,11 +36,13 @@ In the first PowerShell window, from the repository root:
 uv run --project backend --directory backend uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
+On the first frontend run, install its dependencies once with `npm ci` from
+the `frontend/` directory.
+
 In a second window, from the repository root:
 
 ```powershell
 Set-Location .\frontend
-npm ci
 npm run dev
 ```
 
@@ -169,7 +167,7 @@ CUDA/PyTorch and CTranslate2 builds; otherwise use the CPU configuration above.
 | Symptom | Resolution |
 |---|---|
 | uv cannot find Python 3.11 | Install 64-bit Python 3.11 and verify `uv python find 3.11`; recreate `backend/.venv` with `uv sync --project backend --reinstall`. |
-| `uv` is not recognized | Install uv using the [official instructions](https://docs.astral.sh/uv/getting-started/installation/), then rerun `powershell -ExecutionPolicy Bypass -File .\scripts\setup_windows.ps1`. |
+| `uv` is not recognized | Install uv using the [official instructions](https://docs.astral.sh/uv/getting-started/installation/), then run the backend command from the Start the application section. |
 | `uvicorn`, `fastapi`, or `pytest` is unavailable | Run `uv sync --project backend`, then run commands through `uv run --project backend`. |
 | A real provider reports a missing package such as `faster_whisper` or `kokoro` | Run `uv sync --project backend --extra ml`. This installs packages, not model weights. `IndicTransToolkit` has separate Windows build requirements. |
 | First real request is slow, times out, or cannot find a model | Check network access for the first download, free disk space, `MODEL_CACHE_DIR`/`HF_HOME`, and the API terminal logs. The default timeout is 120 seconds; adjust `PROVIDER_TIMEOUT_SECONDS` only if a longer first load is expected. Avoid duplicate requests while a timed-out provider call may still be running. |

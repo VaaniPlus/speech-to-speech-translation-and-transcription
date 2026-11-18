@@ -53,96 +53,32 @@ and approves that integration.
   [final demo script](docs/final-demo-script.md) and
   [handoff](docs/final-handoff.md) record release readiness.
 - `data/` — evaluation datasets used for local validation.
-- `scripts/` — local development and Windows setup helpers.
-  Use `scripts/run_dev.ps1` to start both applications.
+- `scripts/` — optional local development and Windows helpers.
 
 ## Getting started
 
-### Quick start
+Start the backend and frontend in two separate PowerShell terminals from the
+repository root. `uv run` prepares the backend environment automatically. On
+the first frontend run, install its dependencies once with `npm ci`.
+
+### Terminal 1 — Backend
 
 ```powershell
-# 1. Set up the backend
-powershell -ExecutionPolicy Bypass -File .\scripts\setup_windows.ps1
-
-# 2. Start the backend
 uv run --project backend --directory backend uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
 
-# 3. Start the frontend in a second terminal
+### Terminal 2 — Frontend
+
+```powershell
 Set-Location .\frontend
-npm ci
 npm run dev
 ```
 
 Open <http://127.0.0.1:5173>. The frontend communicates with the API through
-Vite's `/api` proxy.
+Vite's `/api` proxy. For optional real-model configuration and troubleshooting,
+see the [Windows setup guide](docs/windows-setup.md).
 
-The backend and tests use Python 3.11; the Vite frontend requires Node.js and
-npm.
-For a complete clean-clone walkthrough, real model setup, GPU fallback, and
-troubleshooting, see the [Windows setup guide](docs/windows-setup.md).
-
-### 1. Initial Setup and Virtual Environment
-
-```powershell
-git clone https://github.com/VaaniPlus/speech-to-speech-translation-and-transcription.git
-cd speech-to-speech-translation-and-transcription
-powershell -ExecutionPolicy Bypass -File .\scripts\setup_windows.ps1
-uv run --project backend pytest
-```
-
-`setup_windows.ps1` uses uv to sync the backend project into `backend/.venv`.
-To install backend dependencies directly from its folder, see the
-[backend setup guide](backend/README.md). Real-model packages are optional;
-install them with `uv sync --project backend --extra ml` only when you plan to
-run real inference.
-
-### 2. Configure the Environment
-
-Copy the example environment configuration:
-
-```powershell
-Copy-Item backend/.env.example backend/.env
-```
-
-Key environment options in `.env`:
-- `PROVIDER_MODE=real` (configured by `backend/.env.example`): Uses real local neural translation (MarianMT / IndicTrans2). Set to `mock` if you prefer offline deterministic placeholders.
-- `DEVICE=cpu`: CPU inference mode (or `cuda` if compatible NVIDIA GPU is available).
-- `STT_COMPUTE_TYPE=int8`: 8-bit quantized compute for CPU-friendly STT inference.
-- `PROVIDER_TIMEOUT_SECONDS=300`: Timeout for provider calls (allows time for first-time model downloads).
-- `MODEL_CACHE_DIR=models`: Directory where model weights are cached.
-
-### 3. Running the Application
-
-Running the application requires **two separate PowerShell terminals** simultaneously:
-
-#### Terminal 1 — Start the Backend API (Port 8000)
-
-```powershell
-uv run --project backend --directory backend uvicorn app.main:app --host 127.0.0.1 --port 8000
-```
-
-Verify backend health at: <http://127.0.0.1:8000/api/health>  
-Interactive Swagger docs: <http://127.0.0.1:8000/docs>
-
-> **Note on First Run**: The first translation request will automatically download the Helsinki-NLP MarianMT model (~300 MB) from Hugging Face into `models/`. Subsequent translations run entirely locally and return instantly.
-
-#### Terminal 2 — Start the Vite Frontend (Port 5173)
-
-```powershell
-Set-Location .\frontend
-npm ci
-npm run dev
-```
-
-#### Terminal 3 / Browser — Open the UI
-
-Open your browser to <http://127.0.0.1:5173>. Vite proxies frontend `/api`
-requests to the backend on port 8000.
-
-> **Important**: Do not open `frontend/index.html` directly via `file://`.
-> Browser microphone capture requires serving over loopback HTTP.
-
-### 4. Running Tests
+### Run tests
 
 ```powershell
 uv run --project backend pytest
