@@ -58,6 +58,67 @@ class FakeTTSProvider:
         return TTSResult(audio_bytes=b"generated-audio", content_type="audio/wav")
 
 
+def test_text_to_speech_returns_audio_for_typed_text() -> None:
+    events: list[tuple[object, ...]] = []
+    app = create_app(
+        Settings(_env_file=None, provider_mode="mock"),
+        tts_provider=FakeTTSProvider(events),
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/text-to-speech",
+            json={"text": "नमस्कार", "target_language": "hi"},
+        )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "audio/wav"
+    assert response.headers["content-disposition"].endswith(
+        'filename="translated-text.wav"'
+    )
+    assert response.content == b"generated-audio"
+    assert response.headers["x-request-id"]
+    assert events == [("tts", "hi", "नमस्कार")]
+
+
+def test_text_to_speech_maps_provider_errors_to_safe_api_errors() -> None:
+    class FailingTTSProvider:
+        def synthesize(self, text: str, target_language: str) -> TTSResult:
+            del text, target_language
+            raise TTSProviderError("private model details")
+
+    app = create_app(
+        Settings(_env_file=None, provider_mode="mock"),
+        tts_provider=FailingTTSProvider(),
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/text-to-speech",
+            json={"text": "Hello", "target_language": "en"},
+        )
+
+    assert response.status_code == 502
+    assert response.json()["code"] == "tts_failed"
+    assert response.json()["stage"] == "tts"
+    assert "private model details" not in response.text
+
+
+def test_text_to_speech_reports_unavailable_provider() -> None:
+    app = create_app(Settings(_env_file=None, provider_mode="mock"))
+    app.state.tts_provider = None
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/text-to-speech",
+            json={"text": "Hello", "target_language": "en"},
+        )
+
+    assert response.status_code == 503
+    assert response.json()["code"] == "tts_provider_unavailable"
+    assert response.json()["stage"] == "tts"
+
+
 @pytest.mark.parametrize(
     ("direction", "source_language", "target_language", "transcript", "translated"),
     [

@@ -21,7 +21,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "backend"))
 
 from app.core.config import Settings, load_settings
 from app.providers.stage1_speech_to_text_faster_whisper import FasterWhisperSTTProvider
-from app.providers.stage2_text_to_text_translation_indictrans2 import IndicTrans2TranslationProvider
+from app.providers.stage2_text_to_text_translation_marian import MarianTranslationProvider
 from app.providers.stage3_text_to_speech_kokoro import KokoroTTSProvider
 from app.providers.stage1_speech_to_text import (
     AudioInput,
@@ -565,9 +565,7 @@ def main(argv: list[str] | None = None) -> int:
         compute_type=settings.stt_compute_type,
         cache_dir=settings.model_cache_dir,
     )
-    translation_provider = IndicTrans2TranslationProvider(
-        en_hi_model_id=settings.translation_en_hi_model_id,
-        hi_en_model_id=settings.translation_hi_en_model_id,
+    translation_provider = MarianTranslationProvider(
         device=settings.device,
         cache_dir=settings.model_cache_dir,
     )

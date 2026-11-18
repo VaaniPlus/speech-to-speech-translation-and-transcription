@@ -14,7 +14,6 @@
 <p>
 <img alt="Speech to text" src="https://img.shields.io/badge/SPEECH_TO_TEXT-Faster--Whisper-2563EB?style=for-the-badge">
 <img alt="Translation" src="https://img.shields.io/badge/TRANSLATION-MarianMT%20(default)-7C3AED?style=for-the-badge">
-<img alt="Optional translation" src="https://img.shields.io/badge/OPTIONAL_TRANSLATION-AI4Bharat%20IndicTrans2-FF9933?style=for-the-badge">
 <img alt="Text to speech" src="https://img.shields.io/badge/TEXT_TO_SPEECH-Kokoro-EC4899?style=for-the-badge">
 </p>
 <p>
@@ -25,8 +24,8 @@ VaaniPlus is a local-first browser application for English ↔ Hindi speech
 translation and transcription. Its pipeline is **speech-to-text → text
 translation → text-to-speech**. The Vite + vanilla TypeScript frontend provides
 microphone capture, typed-text input, result display, and audio playback. The
-FastAPI backend coordinates replaceable Faster-Whisper, MarianMT, optional
-AI4Bharat IndicTrans2, and Kokoro providers.
+FastAPI backend coordinates replaceable Faster-Whisper, MarianMT, and Kokoro
+providers.
 
 [Overview](#scope) · [User guide](frontend/README.md) · [How it works](docs/architecture.md) · [Setup](#getting-started) · [API docs](docs/api.md) · [Final demo](docs/final-demo-script.md) · [Handoff](docs/final-handoff.md)
 
@@ -42,20 +41,38 @@ deployment, or voice cloning. Audio and text are intended to stay local;
 do not send them to external services unless the team explicitly documents
 and approves that integration.
 
-## Repository layout
+## Project structure
 
-- `backend/` — standalone Python project with its own dependencies, FastAPI
-  application, provider boundaries, service logic, schemas, and tests. See
-  [backend setup](backend/README.md).
-- `frontend/` — standalone Vite-powered vanilla TypeScript browser UI and
-  styles. See the [frontend setup guide](frontend/README.md).
-- `docs/` — requirements, architecture, API, testing, and demonstration
-  guidance. See [requirements and acceptance tests](docs/requirements.md)
-  and [architecture and provider boundaries](docs/architecture.md). The
-  [final demo script](docs/final-demo-script.md) and
-  [handoff](docs/final-handoff.md) record release readiness.
-- `data/` — evaluation datasets used for local validation.
-- `scripts/` — optional local development and Windows helpers.
+```text
+.
+├── backend/
+│   ├── app/
+│   │   ├── api/          # FastAPI routes
+│   │   ├── core/         # Configuration and logging
+│   │   ├── providers/    # Faster-Whisper, MarianMT, Kokoro
+│   │   ├── schemas/      # Request and response models
+│   │   ├── services/     # Speech, translation, and synthesis workflows
+│   │   ├── utils/
+│   │   └── main.py
+│   ├── scripts/          # Local evaluation and benchmarks
+│   ├── tests/
+│   ├── pyproject.toml
+│   └── uv.lock
+├── frontend/
+│   ├── src/main.ts       # Vanilla TypeScript UI behavior
+│   ├── index.html
+│   ├── styles.css
+│   ├── package.json
+│   └── vite.config.ts
+├── data/                 # Evaluation datasets
+├── docs/                 # Architecture, API, setup, and demo guides
+├── scripts/              # Optional development helpers
+└── README.md
+```
+
+See the [backend setup](backend/README.md), [frontend setup](frontend/README.md),
+[requirements](docs/requirements.md), and
+[architecture guide](docs/architecture.md) for details.
 
 ## Getting started
 
@@ -95,10 +112,9 @@ uv sync --project backend --extra ml
 ```
 
 The example selects real providers and **MarianMT** for typed English ↔ Hindi
-translation. Its model downloads on the first translation request. **AI4Bharat
-IndicTrans2** is optional: set `TRANSLATION_PROVIDER=indictrans2` in
-`backend/.env`; Hugging Face may require access approval for its model
-checkpoints. See the [translation model guide](docs/translation-model-selection.md).
+translation. Its model downloads on the first translation request. See the
+[translation model guide](docs/translation-model-selection.md) for model and
+Windows notes.
 
 ### Run tests
 
@@ -112,11 +128,12 @@ The default suite uses fake providers and does not download model weights. See
 
 ### Latest local validation (2026-11-18)
 
-- `uv run --project backend pytest`: 134 passed, 1 skipped. The skip is the
+- `uv run --project backend pytest`: 128 passed, 1 skipped. The skip is the
   optional real Faster-Whisper test, which needs model inference and a recording.
-- A real MarianMT API smoke request translated “Hello, how are you?” to Hindi.
-- Mock providers remain workflow placeholders. Physical microphone capture
-  and real STT/TTS inference were not validated in this run.
+- A real MarianMT API request returned Hindi, and Kokoro generated a valid Hindi
+  WAV file.
+- Mock providers remain workflow placeholders. Physical microphone capture and
+  real STT inference were not validated in this run.
 
 This smoke check is not a translation-quality benchmark. See the
 [demo checklist](docs/demo-checklist.md) for workflow validation.

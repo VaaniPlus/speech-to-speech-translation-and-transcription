@@ -7,7 +7,6 @@ from app.providers.stage1_speech_to_text import (
     STTProviderError,
     STTResult,
 )
-from app.providers.stage2_text_to_text_translation_indictrans2 import IndicTrans2TranslationProvider
 from app.providers.stage3_text_to_speech_kokoro import KokoroTTSProvider
 from app.providers.stage2_text_to_text_translation import (
     TranslationProvider,
@@ -24,7 +23,6 @@ from app.providers.stage3_text_to_speech import (
 __all__ = [
     "AudioInput",
     "FasterWhisperSTTProvider",
-    "IndicTrans2TranslationProvider",
     "KokoroTTSProvider",
     "ManagedAudioArtifact",
     "STTProvider",

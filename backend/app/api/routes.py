@@ -10,7 +10,7 @@ from app.core.config import Settings
 from app.providers.stage1_speech_to_text import LanguageCode, STTProvider
 from app.providers.stage2_text_to_text_translation import TranslationProvider
 from app.providers.stage3_text_to_speech import TTSProvider
-from app.schemas.speech import SpeechToTextResponse
+from app.schemas.speech import SpeechToTextResponse, TextToSpeechRequest
 from app.schemas.translation import (
     ErrorResponse,
     LANGUAGES_BY_DIRECTION,
@@ -24,6 +24,10 @@ from app.services.stage4_speech_to_speech_pipeline_service import (
     translate_speech,
 )
 from app.services.stage2_text_to_text_translation_service import translate_text
+from app.services.stage3_text_to_speech_service import (
+    SpeechSynthesisResult,
+    synthesize_text,
+)
 from app.utils.audio import CONTENT_TYPE_SUFFIXES, AudioInputError, read_audio_upload
 
 router = APIRouter()
@@ -337,4 +341,77 @@ async def translate(
         payload,
         provider,
         settings.provider_timeout_seconds,
+    )
+
+
+@router.post(
+    "/text-to-speech",
+    response_class=Response,
+    responses={
+        200: {
+            "description": "Generated audio file.",
+            "content": {
+                media_type: {"schema": {"type": "string", "format": "binary"}}
+                for media_type in CONTENT_TYPE_SUFFIXES
+            },
+            "headers": {
+                "Content-Disposition": {
+                    "description": "Download filename for generated audio.",
+                    "schema": {"type": "string"},
+                },
+                "X-Request-ID": {
+                    "description": "Request correlation ID.",
+                    "schema": {"type": "string"},
+                },
+            },
+        },
+        422: {
+            "model": ErrorResponse,
+            "description": "Request validation failed.",
+        },
+        502: {"model": ErrorResponse, "description": "Speech synthesis failed."},
+        503: {
+            "model": ErrorResponse,
+            "description": "No speech synthesis provider is configured.",
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "An unexpected server error occurred.",
+        },
+        504: {
+            "model": ErrorResponse,
+            "description": "Speech synthesis provider timed out.",
+        },
+    },
+    tags=["speech"],
+    summary="Synthesize typed text as speech",
+)
+async def text_to_speech(
+    payload: TextToSpeechRequest,
+    provider: Annotated[TTSProvider | None, Depends(get_tts_provider)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
+) -> Response:
+    """Synthesize text in the requested language and return an audio file."""
+    result = await synthesize_text(
+        payload.text,
+        payload.target_language,
+        provider,
+        settings.provider_timeout_seconds,
+    )
+    return _text_speech_file_response(result)
+
+
+def _text_speech_file_response(result: SpeechSynthesisResult) -> Response:
+    """Build an audio file response from in-memory or provider-managed audio."""
+    filename = f"translated-text{CONTENT_TYPE_SUFFIXES[result.content_type]}"
+    if isinstance(result.audio, bytes):
+        return Response(
+            content=result.audio,
+            media_type=result.content_type,
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    return FileResponse(
+        path=result.audio,
+        media_type=result.content_type,
+        filename=filename,
     )

@@ -9,6 +9,7 @@ type UIElements = {
   "text-input-mode": HTMLElement;
   "voice-input-mode": HTMLElement;
   "source-text": HTMLTextAreaElement;
+  "demo-text-select": HTMLSelectElement;
   "character-count": HTMLSpanElement;
   "translate-button": HTMLButtonElement;
   "translate-button-label": HTMLSpanElement;
@@ -49,6 +50,7 @@ const voiceModeButton = getElement("voice-mode-button");
 const textInputMode = getElement("text-input-mode");
 const voiceInputMode = getElement("voice-input-mode");
 const sourceText = getElement("source-text");
+const demoTextSelect = getElement("demo-text-select");
 const characterCount = getElement("character-count");
 const translateButton = getElement("translate-button");
 const translateButtonLabel = getElement("translate-button-label");
@@ -79,6 +81,7 @@ const directions: Record<string, {
   sourcePill: string;
   targetPill: string;
   placeholder: string;
+  demoTexts: { label: string; text: string }[];
 }> = {
   "en-to-hi": {
     source: "English",
@@ -87,6 +90,20 @@ const directions: Record<string, {
     sourcePill: "ENGLISH",
     targetPill: "हिन्दी · HINDI",
     placeholder: "Type something in English…",
+    demoTexts: [
+      {
+        label: "Greeting",
+        text: "Hello, how are you? I hope you are having a wonderful day.",
+      },
+      {
+        label: "Find a hospital",
+        text: "Could you please tell me how to get to the nearest hospital from here?",
+      },
+      {
+        label: "Request water",
+        text: "I would like a glass of water and something light to eat, please.",
+      },
+    ],
   },
   "hi-to-en": {
     source: "हिन्दी",
@@ -95,6 +112,20 @@ const directions: Record<string, {
     sourcePill: "हिन्दी · HINDI",
     targetPill: "ENGLISH",
     placeholder: "हिन्दी में कुछ लिखें…",
+    demoTexts: [
+      {
+        label: "अभिवादन",
+        text: "नमस्ते, आप कैसे हैं? आशा है कि आपका दिन बहुत अच्छा जा रहा है।",
+      },
+      {
+        label: "अस्पताल पूछें",
+        text: "क्या आप कृपया बता सकते हैं कि यहाँ से नजदीकी अस्पताल कैसे पहुँचा जा सकता है?",
+      },
+      {
+        label: "पानी माँगें",
+        text: "मुझे कृपया एक गिलास पानी और खाने के लिए कुछ हल्का चाहिए।",
+      },
+    ],
   },
 };
 
@@ -325,6 +356,10 @@ function updateDirection() {
   sourcePill.textContent = direction.sourcePill;
   targetPill.textContent = direction.targetPill;
   sourceText.placeholder = direction.placeholder;
+  demoTextSelect.replaceChildren(new Option("Try demo text…", ""));
+  for (const demo of direction.demoTexts) {
+    demoTextSelect.add(new Option(demo.label, demo.text));
+  }
   updateInput();
 }
 
@@ -505,6 +540,35 @@ async function getApiError(response: Response): Promise<string> {
   }
 }
 
+async function synthesizeTranslatedText(
+  text: string,
+  targetLanguage: string,
+  signal: AbortSignal,
+): Promise<Blob> {
+  const response = await fetch(getApiUrl("text-to-speech"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, target_language: targetLanguage }),
+    signal,
+  });
+  if (!response.ok) throw new Error(await getApiError(response));
+
+  const contentType = response.headers
+    .get("Content-Type")
+    ?.split(";", 1)[0]
+    .trim()
+    .toLowerCase();
+  if (!contentType || !supportedAudioTypes.has(contentType)) {
+    throw new Error("The speech service returned an unsupported audio format.");
+  }
+
+  const audioBlob = await response.blob();
+  if (!audioBlob.size) {
+    throw new Error("The speech service returned an empty audio file.");
+  }
+  return new Blob([audioBlob], { type: contentType });
+}
+
 async function translateRecording() {
   if (speechProcessing || activeController) return;
   if (!(capturedAudio instanceof Blob)) {
@@ -620,6 +684,7 @@ async function translateText() {
   }
 
   cancelSpeechRequest();
+  releaseTranslatedAudio();
 
   const requestId = ++activeRequestId;
   const controller = new AbortController();
@@ -651,7 +716,28 @@ async function translateText() {
 
     translatedOutput.textContent = data.translated_text;
     translatedOutput.lang = data.target_language === "hi" ? "hi" : "en";
-    setStatus("Translation complete.", "success");
+    translateButtonLabel.textContent = "Generating audio…";
+    audioStatus.textContent = "Generating audio…";
+    setStatus("Translation complete. Generating speech…", "loading");
+    try {
+      const audioBlob = await synthesizeTranslatedText(
+        data.translated_text,
+        data.target_language,
+        controller.signal,
+      );
+      if (requestId !== activeRequestId) return;
+      setTranslatedAudio(audioBlob);
+      setStatus("Translation and speech synthesis complete.", "success");
+    } catch (error) {
+      if ((error instanceof Error && error.name === "AbortError") || requestId !== activeRequestId) {
+        return;
+      }
+      releaseTranslatedAudio();
+      const message =
+        error instanceof Error ? error.message : "Speech synthesis could not be completed.";
+      audioStatus.textContent = message;
+      setStatus("Translation complete, but speech could not be generated.", "error");
+    }
   } catch (error) {
     if (error.name === "AbortError" || requestId !== activeRequestId) return;
     sourceOutput.textContent = source;
@@ -683,10 +769,17 @@ directionSelect.addEventListener("change", () => {
 textModeButton.addEventListener("click", () => setInputMode("text"));
 voiceModeButton.addEventListener("click", () => setInputMode("voice"));
 sourceText.addEventListener("input", () => {
+  demoTextSelect.value = "";
   updateInput();
   if (workspaceStatus.dataset.state === "error" || workspaceStatus.dataset.state === "success") {
     setStatus("Ready to translate.", "info");
   }
+});
+demoTextSelect.addEventListener("change", () => {
+  if (!demoTextSelect.value) return;
+  sourceText.value = demoTextSelect.value;
+  updateInput();
+  setStatus("Demo text loaded. Ready to translate.", "info");
 });
 translateButton.addEventListener("click", translateText);
 speechSubmitButton.addEventListener("click", translateRecording);

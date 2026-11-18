@@ -18,7 +18,11 @@ npm run dev
 
 Open `http://127.0.0.1:5173` in a modern browser. Vite proxies `/api` requests
 to the local backend at `127.0.0.1:8000`. The UI provides an English ↔ Hindi
-typed-text and speech translation workspace. Microphone capture starts only
+typed-text and speech translation workspace. After typed translation, the
+translated text is sent to the local `POST /api/text-to-speech` endpoint and
+the returned audio is available through the Play and Replay controls. The
+**Try demo text** dropdown loads sample phrases for the selected direction.
+Microphone capture starts only
 after selecting Start and granting browser permission. Select Stop to finish;
 the captured audio is kept in browser memory and microphone tracks are
 released. Permission denial and unsupported-browser cases show recovery

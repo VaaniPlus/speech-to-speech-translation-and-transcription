@@ -102,9 +102,19 @@ class KokoroTTSProvider:
             pipeline = self._load_pipeline(target_language)
             samples = array("h")
             for chunk in pipeline(text.strip(), voice=voice):
-                if not isinstance(chunk, (tuple, list)) or len(chunk) != 3:
-                    raise TTSProviderError("The TTS provider returned invalid audio data")
-                samples.extend(self._pcm_samples(chunk[2]))
+                if isinstance(chunk, (tuple, list)):
+                    if len(chunk) != 3:
+                        raise TTSProviderError(
+                            "The TTS provider returned invalid audio data"
+                        )
+                    audio = chunk[2]
+                else:
+                    audio = getattr(chunk, "audio", None)
+                    if audio is None:
+                        raise TTSProviderError(
+                            "The TTS provider returned invalid audio data"
+                        )
+                samples.extend(self._pcm_samples(audio))
             if not samples:
                 raise TTSProviderError("The TTS provider returned no audio")
 

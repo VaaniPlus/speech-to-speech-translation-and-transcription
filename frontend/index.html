@@ -66,7 +66,10 @@
               </div>
 
               <div id="text-input-mode">
-                <label class="field-label" for="source-text">MESSAGE TO TRANSLATE</label>
+                <div class="input-label-row">
+                  <label class="field-label" for="source-text">MESSAGE TO TRANSLATE</label>
+                  <select id="demo-text-select" class="demo-text-select" aria-label="Load demo text"></select>
+                </div>
                 <textarea id="source-text" name="source-text" rows="5" maxlength="1000"
                   placeholder="Type something in English…" aria-describedby="input-hint"></textarea>
                 <div class="input-footer">

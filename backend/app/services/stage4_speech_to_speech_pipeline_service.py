@@ -8,12 +8,7 @@ import time
 from app.core.logging_config import log_event
 from app.providers.stage1_speech_to_text import AudioInput, LanguageCode, STTProvider
 from app.providers.stage2_text_to_text_translation import TranslationProvider
-from app.providers.stage3_text_to_speech import (
-    ManagedAudioArtifact,
-    TTSProvider,
-    TTSProviderError,
-    TTSResult,
-)
+from app.providers.stage3_text_to_speech import TTSProvider
 from app.schemas.translation import (
     ErrorStage,
     LANGUAGES_BY_DIRECTION,
@@ -28,8 +23,11 @@ from app.services.stage2_text_to_text_translation_service import (
     TranslationServiceError,
     translate_text,
 )
-from app.services.provider_execution import ProviderCallTimeout, run_provider_call
-from app.utils.audio import CONTENT_TYPE_SUFFIXES
+from app.services.stage3_text_to_speech_service import (
+    SpeechSynthesisProviderUnavailable,
+    SpeechSynthesisServiceError,
+    synthesize_text,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -93,47 +91,6 @@ class SpeechTranslationResult:
     content_type: str
 
 
-def _normalize_audio_result(
-    result: bytes | TTSResult | ManagedAudioArtifact,
-) -> tuple[bytes | Path, str]:
-    if isinstance(result, TTSResult):
-        audio: bytes | Path = result.audio_bytes
-        content_type = result.content_type
-    elif isinstance(result, ManagedAudioArtifact):
-        audio = Path(result.uri)
-        content_type = result.content_type
-        if not audio.is_file() or audio.stat().st_size == 0:
-            raise SpeechTranslationFailed(
-                status_code=502,
-                code="tts_failed",
-                message="Speech synthesis could not be completed.",
-                stage="tts",
-            )
-    elif isinstance(result, bytes):
-        audio = result
-        content_type = "audio/wav"
-    else:
-        raise SpeechTranslationFailed(
-            status_code=502,
-            code="tts_failed",
-            message="Speech synthesis could not be completed.",
-            stage="tts",
-        )
-
-    if (
-        not isinstance(content_type, str)
-        or content_type.lower() not in CONTENT_TYPE_SUFFIXES
-        or (isinstance(audio, bytes) and not audio)
-    ):
-        raise SpeechTranslationFailed(
-            status_code=502,
-            code="tts_failed",
-            message="Speech synthesis could not be completed.",
-            stage="tts",
-        )
-    return audio, content_type.lower()
-
-
 async def translate_speech(
     audio: AudioInput,
     direction: TranslationDirection,
@@ -181,113 +138,23 @@ async def translate_speech(
             stage="translation",
         ) from error
 
-    tts_started_at = time.perf_counter()
-    if tts_provider is None:
-        log_event(
-            logger,
-            logging.WARNING,
-            "stage_result",
-            stage="tts",
-            outcome="provider_unavailable",
-            duration_ms=round((time.perf_counter() - tts_started_at) * 1000, 3),
-        )
-        raise SpeechTranslationProviderUnavailable
-
     try:
-        tts_result = await run_provider_call(
-            lambda: tts_provider.synthesize(
-                translation.translated_text,
-                target_language,
-            ),
+        synthesis = await synthesize_text(
+            translation.translated_text,
+            target_language,
+            tts_provider,
             timeout_seconds,
+            direction=direction,
         )
-        generated_audio, content_type = _normalize_audio_result(tts_result)
-    except ProviderCallTimeout as error:
-        log_event(
-            logger,
-            logging.WARNING,
-            "stage_result",
-            stage="tts",
-            outcome="timeout",
-            timeout_seconds=timeout_seconds,
-            duration_ms=round((time.perf_counter() - tts_started_at) * 1000, 3),
-        )
+    except SpeechSynthesisProviderUnavailable as error:
+        raise SpeechTranslationProviderUnavailable from error
+    except SpeechSynthesisServiceError as error:
         raise SpeechTranslationFailed(
-            status_code=504,
-            code="tts_timeout",
-            message="Speech synthesis timed out.",
+            status_code=error.status_code,
+            code=error.code,
+            message=error.message,
             stage="tts",
         ) from error
-    except SpeechTranslationServiceError as error:
-        log_event(
-            logger,
-            logging.WARNING,
-            "stage_result",
-            stage="tts",
-            outcome="invalid_output",
-            error_code=error.code,
-            duration_ms=round((time.perf_counter() - tts_started_at) * 1000, 3),
-        )
-        raise
-    except TTSProviderError as error:
-        log_event(
-            logger,
-            logging.WARNING,
-            "stage_result",
-            stage="tts",
-            outcome="provider_error",
-            error_type=type(error).__name__,
-            duration_ms=round((time.perf_counter() - tts_started_at) * 1000, 3),
-        )
-        raise SpeechTranslationFailed(
-            status_code=502,
-            code="tts_failed",
-            message="Speech synthesis could not be completed.",
-            stage="tts",
-        ) from error
-    except Exception as error:
-        log_event(
-            logger,
-            logging.WARNING,
-            "stage_result",
-            stage="tts",
-            outcome="provider_error",
-            error_type=type(error).__name__,
-            duration_ms=round((time.perf_counter() - tts_started_at) * 1000, 3),
-        )
-        raise SpeechTranslationFailed(
-            status_code=502,
-            code="tts_failed",
-            message="Speech synthesis could not be completed.",
-            stage="tts",
-        ) from error
-
-    if isinstance(generated_audio, bytes) and not generated_audio:
-        log_event(
-            logger,
-            logging.WARNING,
-            "stage_result",
-            stage="tts",
-            outcome="invalid_output",
-            error_code="tts_failed",
-            duration_ms=round((time.perf_counter() - tts_started_at) * 1000, 3),
-        )
-        raise SpeechTranslationFailed(
-            status_code=502,
-            code="tts_failed",
-            message="Speech synthesis could not be completed.",
-            stage="tts",
-        )
-
-    log_event(
-        logger,
-        logging.INFO,
-        "stage_result",
-        stage="tts",
-        outcome="success",
-        direction=direction,
-        duration_ms=round((time.perf_counter() - tts_started_at) * 1000, 3),
-    )
     log_event(
         logger,
         logging.INFO,
@@ -302,6 +169,6 @@ async def translate_speech(
         source_language=source_language,
         target_language=target_language,
         direction=direction,
-        audio=generated_audio,
-        content_type=content_type,
+        audio=synthesis.audio,
+        content_type=synthesis.content_type,
     )

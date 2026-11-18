@@ -28,7 +28,6 @@ from app.providers.fake_providers import (
     FakeTTSProvider,
 )
 from app.providers.stage1_speech_to_text_faster_whisper import FasterWhisperSTTProvider
-from app.providers.stage2_text_to_text_translation_indictrans2 import IndicTrans2TranslationProvider
 from app.providers.stage2_text_to_text_translation_marian import MarianTranslationProvider
 from app.providers.stage3_text_to_speech_kokoro import KokoroTTSProvider
 from app.providers.stage1_speech_to_text import STTProvider
@@ -38,6 +37,7 @@ from app.schemas.translation import ErrorResponse, ErrorStage
 from app.services.stage1_speech_to_text_service import SpeechToTextServiceError
 from app.services.stage4_speech_to_speech_pipeline_service import SpeechTranslationServiceError
 from app.services.stage2_text_to_text_translation_service import TranslationServiceError
+from app.services.stage3_text_to_speech_service import SpeechSynthesisServiceError
 from app.utils.audio import AudioInputError
 
 logger = logging.getLogger(__name__)
@@ -145,14 +145,6 @@ def create_app(
         )
         if translation_provider is not None:
             application.state.translation_provider = translation_provider
-        elif app_settings.translation_provider == "indictrans2":
-            application.state.translation_provider = IndicTrans2TranslationProvider(
-                en_hi_model_id=app_settings.translation_en_hi_model_id,
-                hi_en_model_id=app_settings.translation_hi_en_model_id,
-                device=app_settings.device,
-                cache_dir=app_settings.model_cache_dir,
-            )
-            logger.info("Translation provider: IndicTrans2 (ai4bharat)")
         else:
             application.state.translation_provider = MarianTranslationProvider(
                 device=app_settings.device,
@@ -303,6 +295,19 @@ def create_app(
             code=error.code,
             message=error.message,
             stage=error.stage,
+            error=error,
+        )
+
+    @application.exception_handler(SpeechSynthesisServiceError)
+    async def handle_speech_synthesis_error(
+        request: Request, error: SpeechSynthesisServiceError
+    ) -> JSONResponse:
+        return error_response(
+            request,
+            status_code=error.status_code,
+            code=error.code,
+            message=error.message,
+            stage="tts",
             error=error,
         )
 

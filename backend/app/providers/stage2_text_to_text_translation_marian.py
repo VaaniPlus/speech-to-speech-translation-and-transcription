@@ -1,4 +1,4 @@
-"""MarianMT translation provider — works without IndicTransToolkit (CPU-only, pre-built wheels)."""
+"""MarianMT translation provider using the standard Transformers API."""
 
 from __future__ import annotations
 

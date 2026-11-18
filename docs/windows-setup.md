@@ -80,9 +80,10 @@ $env:DEVICE = "cpu"
 $env:STT_COMPUTE_TYPE = "int8"
 ```
 
-Model IDs are configured by `STT_MODEL_ID`, `TRANSLATION_EN_HI_MODEL_ID`,
-`TRANSLATION_HI_EN_MODEL_ID`, `TTS_EN_MODEL_ID`, and `TTS_HI_MODEL_ID`. The
-defaults are the Windows-oriented candidates described in the
+Model IDs are configured by `STT_MODEL_ID`, `TTS_EN_MODEL_ID`, and
+`TTS_HI_MODEL_ID`. The translation model IDs are documented in the
+[translation guide](translation-model-selection.md). The defaults are the
+Windows-oriented candidates described in the
 [STT](stt-model-selection.md), [translation](translation-model-selection.md),
 and [TTS](tts-model-selection.md) selection notes. Check those notes for
 licensing and known limitations before distributing model files.
@@ -123,9 +124,6 @@ settings are reloaded.
 | `PROVIDER_MODE` | `mock` | `mock` uses deterministic fakes; set to `real` to enable local model providers. |
 | `STT_MODEL_ID` | `Systran/faster-whisper-small` | Faster-Whisper model ID. |
 | `STT_COMPUTE_TYPE` | `auto` | CTranslate2 precision/quantization setting; `int8` is a practical CPU starting point. |
-| `TRANSLATION_PROVIDER` | `marian` | `marian` (default, Helsinki-NLP) or explicitly selected `indictrans2` (AI4Bharat). |
-| `TRANSLATION_EN_HI_MODEL_ID` | `ai4bharat/indictrans2-en-indic-dist-200M` | English-to-Hindi checkpoint used by `indictrans2`. |
-| `TRANSLATION_HI_EN_MODEL_ID` | `ai4bharat/indictrans2-indic-en-dist-200M` | Hindi-to-English checkpoint used by `indictrans2`. |
 | `TTS_EN_MODEL_ID` / `TTS_HI_MODEL_ID` | `hexgrad/Kokoro-82M` | Kokoro model IDs for each target language. |
 | `MODEL_CACHE_DIR` | `models` | Cache path passed to STT and translation providers; use an external path. |
 | `HF_HOME` | Hugging Face default | Optional process environment variable for Hugging Face cache location. |
@@ -170,8 +168,7 @@ CUDA/PyTorch and CTranslate2 builds; otherwise use the CPU configuration above.
 | uv cannot find Python 3.11 | Install 64-bit Python 3.11 and verify `uv python find 3.11`; recreate `backend/.venv` with `uv sync --project backend --reinstall`. |
 | `uv` is not recognized | Install uv using the [official instructions](https://docs.astral.sh/uv/getting-started/installation/), then run the backend command from the Start the application section. |
 | `uvicorn`, `fastapi`, or `pytest` is unavailable | Run `uv sync --project backend`, then run commands through `uv run --project backend`. |
-| A real provider reports a missing package such as `faster_whisper`, `kokoro`, or `IndicTransToolkit` | Run `uv sync --project backend --extra ml`. This installs packages, not model weights. |
-| Hugging Face returns 401 or says an AI4Bharat model is gated | Request access to that checkpoint on Hugging Face, authenticate locally with `hf auth login`, then restart the backend. Do not share or commit your token. |
+| A real provider reports a missing package such as `faster_whisper` or `kokoro` | Run `uv sync --project backend --extra ml`. This installs packages, not model weights. |
 | First real request is slow, times out, or cannot find a model | Check network access for the first download, free disk space, `MODEL_CACHE_DIR`/`HF_HOME`, and the API terminal logs. The default timeout is 120 seconds; adjust `PROVIDER_TIMEOUT_SECONDS` only if a longer first load is expected. Avoid duplicate requests while a timed-out provider call may still be running. |
 | CUDA initialization fails, or the GPU is unsupported | Set `DEVICE=cpu` and `STT_COMPUTE_TYPE=int8`, restart the API, and retry. For GPU use, verify that PyTorch and CTranslate2 match the installed NVIDIA driver/runtime. |
 | Kokoro reports an eSpeak or phonemizer error | Install the Windows eSpeak NG runtime described in the [TTS model notes](tts-model-selection.md), then restart PowerShell and the API. |

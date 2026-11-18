@@ -33,3 +33,16 @@ class SpeechToTextResponse(BaseModel):
         description="Provider confidence when available, between zero and one.",
     )
     status: Literal["success"] = "success"
+
+
+class TextToSpeechRequest(BaseModel):
+    """Text and language submitted for speech synthesis."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    text: NonEmptyTranscript = Field(
+        description="Non-empty text to synthesize; surrounding whitespace is removed."
+    )
+    target_language: LanguageCode = Field(
+        description="Language of the text to synthesize: English or Hindi."
+    )

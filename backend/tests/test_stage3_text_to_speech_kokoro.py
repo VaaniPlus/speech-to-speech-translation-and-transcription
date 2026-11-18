@@ -26,13 +26,18 @@ class FakeAudio:
         return self.values
 
 
+class FakeResult:
+    def __init__(self, audio: FakeAudio) -> None:
+        self.audio = audio
+
+
 class FakePipeline:
     def __init__(self) -> None:
         self.calls: list[tuple[str, str]] = []
 
     def __call__(self, text: str, voice: str):
         self.calls.append((text, voice))
-        yield "graphemes", "phonemes", FakeAudio([0.0, 0.5, -0.5])
+        yield FakeResult(FakeAudio([0.0, 0.5, -0.5]))
         yield "more graphemes", "more phonemes", FakeAudio([1.0])
 
 

@@ -12,7 +12,6 @@ LogLevel = Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]
 Device = Literal["auto", "cpu", "cuda"]
 ComputeType = Literal["auto", "int8", "int8_float16", "int16", "float16", "float32"]
 ProviderMode = Literal["mock", "real"]
-TranslationProviderName = Literal["marian", "indictrans2"]
 
 
 class Settings(BaseSettings):
@@ -29,18 +28,11 @@ class Settings(BaseSettings):
     log_level: LogLevel = "INFO"
 
     stt_model_id: str = Field(default="Systran/faster-whisper-small", min_length=1)
-    translation_en_hi_model_id: str = Field(
-        default="ai4bharat/indictrans2-en-indic-dist-200M", min_length=1
-    )
-    translation_hi_en_model_id: str = Field(
-        default="ai4bharat/indictrans2-indic-en-dist-200M", min_length=1
-    )
     tts_en_model_id: str = Field(default="hexgrad/Kokoro-82M", min_length=1)
     tts_hi_model_id: str = Field(default="hexgrad/Kokoro-82M", min_length=1)
     model_cache_dir: Path = Path("models")
     device: Device = "auto"
     stt_compute_type: ComputeType = "auto"
-    translation_provider: TranslationProviderName = "marian"
     max_upload_size_bytes: int = Field(default=25 * 1024 * 1024, gt=0)
     provider_timeout_seconds: float = Field(default=120.0, gt=0)
     provider_mode: ProviderMode = Field(
@@ -58,8 +50,6 @@ class Settings(BaseSettings):
     @field_validator(
         "host",
         "stt_model_id",
-        "translation_en_hi_model_id",
-        "translation_hi_en_model_id",
         "tts_en_model_id",
         "tts_hi_model_id",
     )

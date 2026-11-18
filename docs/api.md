@@ -4,8 +4,9 @@ The FastAPI server provides interactive documentation at `/docs` and an
 OpenAPI schema at `/openapi.json`.
 
 The documented application routes are `GET /api/health`,
-`POST /api/translate`, `POST /api/speech-to-text`, and
-`POST /api/speech-translate`. This server is intended for local development.
+`POST /api/translate`, `POST /api/speech-to-text`,
+`POST /api/speech-translate`, and `POST /api/text-to-speech`. This server is
+intended for local development.
 
 ## Development browser access
 
@@ -126,6 +127,26 @@ the `X-Request-ID` header.
 Provider errors and timeouts are logged with that ID, stage, stable error code,
 and exception type; provider exception messages and local paths are not
 returned.
+
+## Typed-text speech synthesis
+
+`POST /api/text-to-speech` accepts translated text and its target language,
+then returns a generated audio file. The frontend calls it after typed-text
+translation so the Play and Replay controls work for typed input as well as
+recorded speech.
+
+```json
+{
+  "text": "नमस्कार",
+  "target_language": "hi"
+}
+```
+
+Successful responses contain only the generated audio, with a supported audio
+content type and a `Content-Disposition` filename. Empty text or an unsupported
+language returns HTTP 422. A missing TTS provider returns HTTP 503; provider
+failures return HTTP 502 and timeouts return HTTP 504. Errors use the stable
+`ErrorResponse` schema with the `tts` stage.
 
 ## Speech-to-text
 

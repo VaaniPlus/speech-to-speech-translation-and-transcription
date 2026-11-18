@@ -6,7 +6,6 @@ from app.core.config import Settings
 from app.main import create_app
 from app.providers.fake_providers import FakeSTTProvider, FakeTTSProvider, FakeTranslationProvider
 from app.providers.stage1_speech_to_text_faster_whisper import FasterWhisperSTTProvider
-from app.providers.stage2_text_to_text_translation_indictrans2 import IndicTrans2TranslationProvider
 from app.providers.stage2_text_to_text_translation_marian import MarianTranslationProvider
 from app.providers.stage3_text_to_speech_kokoro import KokoroTTSProvider
 from app.providers.stage1_speech_to_text import AudioInput
@@ -52,15 +51,3 @@ def test_real_mode_installs_real_adapters_without_fake_providers() -> None:
     assert isinstance(app.state.stt_provider, FasterWhisperSTTProvider)
     assert isinstance(app.state.translation_provider, MarianTranslationProvider)
     assert isinstance(app.state.tts_provider, KokoroTTSProvider)
-
-
-def test_real_mode_can_select_indictrans2_explicitly() -> None:
-    app = create_app(
-        Settings(
-            _env_file=None,
-            provider_mode="real",
-            translation_provider="indictrans2",
-        )
-    )
-
-    assert isinstance(app.state.translation_provider, IndicTrans2TranslationProvider)
