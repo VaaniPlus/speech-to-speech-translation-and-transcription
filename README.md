@@ -19,6 +19,17 @@
 <p>
 <img alt="Models" src="https://img.shields.io/badge/MODELS-Hugging%20Face-facc15?style=for-the-badge&logo=huggingface&logoColor=black">
 </p>
+<p>
+<strong>Hugging Face models</strong><br>
+Speech-to-text:
+<a href="https://huggingface.co/Systran/faster-whisper-small">Systran/faster-whisper-small</a><br>
+Translation EN → HI:
+<a href="https://huggingface.co/Helsinki-NLP/opus-mt-en-hi">Helsinki-NLP/opus-mt-en-hi</a><br>
+Translation HI → EN:
+<a href="https://huggingface.co/Helsinki-NLP/opus-mt-hi-en">Helsinki-NLP/opus-mt-hi-en</a><br>
+Text-to-speech (English and Hindi):
+<a href="https://huggingface.co/hexgrad/Kokoro-82M">hexgrad/Kokoro-82M</a>
+</p>
 
 VaaniPlus is a local-first browser application for English ↔ Hindi speech
 translation and transcription. Its pipeline is **speech-to-text → text
