@@ -99,6 +99,14 @@ Open <http://127.0.0.1:5173>. The frontend communicates with the API through
 Vite's `/api` proxy. For optional real-model configuration and troubleshooting,
 see the [Windows setup guide](docs/windows-setup.md).
 
+## GitHub Pages
+
+The GitHub Actions workflow publishes only the static frontend to
+<https://vaaniplus.github.io/speech-to-speech-translation-and-transcription/>.
+The backend is not deployed by this workflow, so translation, transcription,
+and speech synthesis require a separately hosted API; the Vite API proxy works
+only during local development.
+
 ### Translation modes
 
 Without a local `.env`, the backend uses mock providers; mock results are
