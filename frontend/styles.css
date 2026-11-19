@@ -14,6 +14,136 @@
   text-rendering: optimizeLegibility;
 }
 
+.account-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: #64736a;
+  font-size: 11px;
+}
+
+.account-controls button {
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid #dfe6df;
+  border-radius: 7px;
+  color: var(--green);
+  background: #fff;
+  font-size: 10px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.auth-screen {
+  min-height: calc(100vh - 147px);
+  display: grid;
+  place-items: center;
+  padding: 45px 0;
+}
+
+.auth-card {
+  width: min(440px, 100%);
+  padding: 34px;
+  border: 1px solid #e6e9e1;
+  border-radius: 19px;
+  background: var(--surface);
+  box-shadow: 0 16px 48px rgb(30 53 43 / 6%);
+}
+
+.auth-card h1 {
+  margin-top: 16px;
+  font-size: clamp(36px, 5vw, 46px);
+}
+
+.auth-copy {
+  margin: 0 0 23px;
+  color: #68766f;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 20px;
+  padding: 4px;
+  border: 1px solid #e8ece6;
+  border-radius: 10px;
+  background: #f7f9f6;
+}
+
+.auth-tabs button {
+  min-height: 37px;
+  border: 0;
+  border-radius: 7px;
+  color: #78857d;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.auth-tabs button[aria-pressed="true"] {
+  color: var(--green-dark);
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(23 42 38 / 10%);
+}
+
+.auth-label {
+  display: block;
+  margin: 15px 0 7px;
+  color: var(--green);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 1px;
+}
+
+.auth-card input {
+  width: 100%;
+  min-height: 43px;
+  padding: 0 12px;
+  border: 1px solid #e7ebe5;
+  border-radius: 9px;
+  color: var(--ink);
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+}
+
+.auth-submit {
+  width: 100%;
+  min-height: 43px;
+  margin-top: 22px;
+  border: 0;
+  border-radius: 9px;
+  color: #fff;
+  background: var(--green);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.auth-submit:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.auth-message {
+  min-height: 20px;
+  margin: 12px 0 0;
+  color: #9a4b3d;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.auth-footnote {
+  margin: 7px 0 0;
+  color: #8a958e;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -41,7 +171,8 @@ select {
 button:focus-visible,
 textarea:focus-visible,
 select:focus-visible,
-a:focus-visible {
+a:focus-visible,
+input:focus-visible {
   outline: 3px solid #e7a07b;
   outline-offset: 3px;
 }
@@ -826,6 +957,14 @@ textarea::placeholder {
 
   .topbar {
     height: 68px;
+  }
+
+  .auth-screen {
+    min-height: calc(100vh - 133px);
+  }
+
+  .auth-card {
+    padding: 26px 22px;
   }
 
   .intro {

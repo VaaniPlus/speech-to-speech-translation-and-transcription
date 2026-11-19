@@ -119,7 +119,7 @@ def create_app(
             "http://[::1]:5173",
         ],
         allow_methods=["GET", "POST"],
-        allow_headers=["Content-Type"],
+        allow_headers=["Content-Type", "Authorization"],
         expose_headers=[
             "X-Transcript",
             "X-Translated-Text",

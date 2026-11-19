@@ -39,6 +39,18 @@ class Settings(BaseSettings):
         default="mock",
         description="Development mode; real provider adapters are not loaded in mock mode.",
     )
+    database_url: str = Field(
+        default="postgresql+psycopg://vaaniplus:vaaniplus@127.0.0.1:5432/vaaniplus",
+        min_length=1,
+    )
+    jwt_secret_key: str = Field(
+        default="change-this-development-secret-key",
+        min_length=32,
+    )
+    access_token_expire_minutes: int = Field(default=60, gt=0)
+    seed_default_user: bool = True
+    default_user_email: str = Field(default="proindra@example.com", min_length=3, max_length=254)
+    default_user_password: str = Field(default="VaaniProindra#2026", min_length=8, max_length=128)
 
     @field_validator("log_level", mode="before")
     @classmethod
@@ -52,6 +64,10 @@ class Settings(BaseSettings):
         "stt_model_id",
         "tts_en_model_id",
         "tts_hi_model_id",
+        "database_url",
+        "jwt_secret_key",
+        "default_user_email",
+        "default_user_password",
     )
     @classmethod
     def reject_blank_values(cls, value: str) -> str:

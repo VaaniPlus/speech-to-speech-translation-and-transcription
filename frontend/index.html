@@ -22,9 +22,38 @@
           <span class="privacy-dot" aria-hidden="true"></span>
           Local-first workspace
         </span>
+        <div class="account-controls" id="account-controls" hidden>
+          <span id="account-email"></span>
+          <button id="logout-button" type="button">Sign out</button>
+        </div>
       </header>
 
       <main>
+        <section class="auth-screen" id="auth-screen" aria-labelledby="auth-title">
+          <div class="auth-card">
+            <p class="eyebrow"><span aria-hidden="true">✳</span> VAANIPLUS ACCOUNT</p>
+            <h1 id="auth-title">Welcome <span>back.</span></h1>
+            <p class="auth-copy">Sign in to continue to your English ↔ Hindi translation workspace.</p>
+            <div class="auth-tabs" role="group" aria-label="Authentication mode">
+              <button id="login-tab" type="button" aria-pressed="true">Sign in</button>
+              <button id="register-tab" type="button" aria-pressed="false">Create account</button>
+            </div>
+            <form id="auth-form">
+              <label class="auth-label" for="auth-email">EMAIL</label>
+              <input id="auth-email" name="email" type="email" autocomplete="email"
+                maxlength="254" required placeholder="you@example.com">
+              <label class="auth-label" for="auth-password">PASSWORD</label>
+              <input id="auth-password" name="password" type="password"
+                autocomplete="current-password" minlength="8" maxlength="128" required
+                placeholder="At least 8 characters">
+              <button class="auth-submit" id="auth-submit" type="submit">Sign in</button>
+            </form>
+            <p class="auth-message" id="auth-message" role="status" aria-live="polite"></p>
+            <p class="auth-footnote">Your account is stored locally in the project database.</p>
+          </div>
+        </section>
+
+        <div id="translation-app" hidden>
         <section class="intro" aria-labelledby="page-title">
           <p class="eyebrow"><span aria-hidden="true">✳</span> SPEECH TRANSLATION</p>
           <h1 id="page-title">Words that travel.<br><span>Meaning that stays.</span></h1>
@@ -184,6 +213,7 @@
             <span id="workspace-status-text">Type a message or switch to Voice to record.</span>
           </div>
         </section>
+        </div>
       </main>
 
       <footer class="footer">
