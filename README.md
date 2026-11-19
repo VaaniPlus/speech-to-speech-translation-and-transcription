@@ -45,7 +45,9 @@ providers.
 
 The backend also provides small local account authentication backed by
 PostgreSQL in Docker. Speech routes remain available without a token for the
-existing local demo.
+existing local demo. Signed-in users can review their five latest typed-text
+or speech conversions in the dashboard; each account's history is stored
+locally in PostgreSQL.
 
 [Overview](#scope) · [User guide](frontend/README.md) · [Architecture](#architecture) · [Setup](#getting-started) · [API docs](docs/api.md) · [Final demo](docs/final-demo-script.md) · [Handoff](docs/final-handoff.md)
 
@@ -87,10 +89,11 @@ and approves that integration.
 ├── backend/
 │   ├── app/
 │   │   ├── api/          # FastAPI routes
-│   │   ├── core/         # Configuration and logging
+│   │   ├── core/         # Configuration, logging, and token security
+│   │   ├── models/       # User and conversion-history tables
 │   │   ├── providers/    # Faster-Whisper, MarianMT, Kokoro
 │   │   ├── schemas/      # Request and response models
-│   │   ├── services/     # Speech, translation, and synthesis workflows
+│   │   ├── services/     # Speech, translation, synthesis, and history
 │   │   ├── utils/
 │   │   └── main.py
 │   ├── tests/
@@ -104,6 +107,7 @@ and approves that integration.
 │   └── vite.config.ts
 ├── data/                 # Evaluation datasets
 ├── docs/                 # Architecture, API, setup, and demo guides
+├── docker-compose.yml    # Local PostgreSQL 16 service
 └── README.md
 ```
 
@@ -115,12 +119,15 @@ See the [backend setup](backend/README.md), [frontend setup](frontend/README.md)
 
 ```mermaid
 flowchart LR
-    Browser["Vite + vanilla TypeScript<br/>Local browser or GitHub Pages"]
+    Browser["Vite + vanilla TypeScript<br/>Sign-in and translation dashboard"]
     API["FastAPI + Uvicorn<br/>Local backend :8000"]
+    Database["PostgreSQL 16<br/>Docker container"]
     Translation["MarianMT"]
     STT["Faster-Whisper"]
     TTS["Kokoro"]
 
+    Browser -->|"Register / sign in"| API
+    Browser -->|"GET /api/conversions/history"| API
     Browser -->|"Typed text: POST /api/translate"| API
     API --> Translation
     Translation -->|"Translated text JSON"| Browser
@@ -130,6 +137,7 @@ flowchart LR
     Browser -->|"Recorded audio: POST /api/speech-translate"| API
     API --> STT --> Translation --> TTS
     TTS -->|"Audio + transcript/translation headers"| Browser
+    API -->|"Accounts and latest five conversions"| Database
 ```
 
 Typed input is translated first, then the frontend requests speech for the
@@ -154,7 +162,7 @@ docker compose up -d postgres
 The Compose service uses the official Docker image tag `postgres:16`.
 
 The local demo account is created automatically the first time an auth endpoint
-is used:
+is used, if it does not already exist:
 
 - Email: `proindra@example.com`
 - Password: `VaaniProindra#2026`
@@ -162,6 +170,11 @@ is used:
 These are development-only credentials. Set `DEFAULT_USER_EMAIL` and
 `DEFAULT_USER_PASSWORD` in `backend/.env` before using this setup beyond a
 local demo.
+
+After signing in, successful typed and speech translations are saved to that
+account's history. Only the newest five conversions are kept. To inspect the
+API contract, open <http://127.0.0.1:8000/docs> and see
+[API documentation](docs/api.md).
 
 ### Terminal 1 — Backend
 
@@ -217,10 +230,14 @@ The default suite uses fake providers and does not download model weights. See
 [testing](docs/testing.md) for the focused speech integration test and
 [optional real-model smoke test](docs/model-smoke-test.md).
 
-### Latest local validation (2026-11-18)
+### Latest local validation (2026-11-19)
 
-- `uv run --project backend pytest`: 125 passed, 1 skipped. The skip is the
+- `uv run --project backend pytest`: 130 passed, 1 skipped. The skip is the
   optional real Faster-Whisper test, which needs model inference and a recording.
+- `npm run build` in `frontend/`: TypeScript checks and Vite production build
+  passed.
+- PostgreSQL history integration: verified sign-in, saving conversions, and
+  retention of only the latest five records.
 - A real MarianMT API request returned Hindi, and Kokoro generated a valid Hindi
   WAV file.
 - Mock providers remain workflow placeholders. Physical microphone capture and

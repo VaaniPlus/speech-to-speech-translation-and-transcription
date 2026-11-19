@@ -23,6 +23,13 @@ The first authentication request seeds a local demo account using
 `proindra@example.com` and `VaaniProindra#2026`). These are development-only
 credentials; change them in `.env` before using a non-demo environment.
 
+The API provides registration and login, plus `GET /api/auth/me` for the
+current bearer-token account. Authenticated requests to `POST /api/translate`
+and `POST /api/speech-translate` save source text, translation, and direction
+to that user's history. `GET /api/conversions/history` returns the newest five
+conversions for the signed-in user. Requests without a token remain usable but
+do not save history. See the [API guide](../docs/api.md) for request details.
+
 `uv run` creates and syncs the project environment automatically. Run the tests
 from `backend/` with:
 

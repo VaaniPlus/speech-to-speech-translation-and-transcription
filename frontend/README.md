@@ -5,7 +5,7 @@ For a clean setup, model configuration, and troubleshooting, see the
 repository root in one terminal:
 
 ```powershell
-uv run --project backend --directory backend uvicorn app.main:app --host 127.0.0.1 --port 8000
+uv run --project backend --directory backend uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 In another terminal, install the frontend dependencies once and start Vite:
@@ -28,6 +28,9 @@ the repository root. Successful sign-in opens the translation workspace for
 the current browser tab, and **Sign out** returns to the auth screen.
 The dashboard lists the signed-in user's five most recent typed or speech
 conversions, saved in the local PostgreSQL database.
+Use the development account from the repository README, or choose **Create
+account** to register another local user. A successful conversion appears in
+the list automatically; history is private to the signed-in account.
 Microphone capture starts only
 after selecting Start and granting browser permission. Select Stop to finish;
 the captured audio is kept in browser memory and microphone tracks are
