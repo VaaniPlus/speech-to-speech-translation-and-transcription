@@ -1,0 +1,170 @@
+VAANIPLUS
+SOFTWARE TEST REPORT
+===================
+
+Report version: 1.0
+Execution date: 2026-11-20
+Report status: Real automated results recorded; manual/optional checks remain
+Tester name: [Enter your name before submission]
+
+1. EXECUTIVE SUMMARY
+--------------------
+
+The documented backend automated suite and frontend production build were run
+against the local VaaniPlus repository. Both commands completed successfully.
+
+Backend suite:
+- 131 tests collected.
+- 130 passed.
+- 1 skipped.
+- 0 failed.
+- 1 non-failing deprecation warning.
+- Pytest duration: 5.37 seconds.
+
+Frontend:
+- TypeScript check passed.
+- Vite production build passed.
+
+Overall assessment: PARTIAL PASS. The automated checks and frontend build
+passed, but this report does not certify manual browser behavior, a live
+PostgreSQL 16 container integration, real speech-model quality, CUDA
+inference, security testing, or performance testing.
+
+2. SYSTEM AND EXECUTION DETAILS
+-------------------------------
+
+Project: VaaniPlus - English-Hindi Speech Translation and Transcription
+Repository branch: main
+Source revision tested: 578f7de
+Operating platform: Windows (win32)
+Python: 3.11.9
+Pytest: 8.3.5
+Vite: 8.3.8
+
+The backend tests use the in-process FastAPI test client and deterministic
+fake providers. The default automated suite does not require a running API
+server, model downloads, or a GPU. The frontend build runs TypeScript checking
+and Vite production bundling; it is not a browser end-to-end test.
+
+3. EXECUTED TESTS
+-----------------
+
+3.1 Backend automated suite
+
+Command:
+  uv run --project backend pytest
+
+Working directory:
+  Repository root
+
+Result: PASS WITH ONE SKIPPED TEST
+
+Actual result:
+  collected 131 items
+  130 passed, 1 skipped, 1 warning in 5.37s
+  Exit code: 0
+
+Coverage included:
+- Typed translation validation and API responses.
+- Speech-to-text upload validation and API errors.
+- Speech translation pipeline and response metadata.
+- Authentication and per-user history logic.
+- Audio utilities and temporary-file cleanup.
+- Provider interfaces, fake-provider behavior, configuration, and error
+  responses.
+- Health endpoint and application behavior.
+
+Skipped test:
+- The optional real STT smoke test was skipped. It is opt-in and requires
+  RUN_STT_SMOKE=1 and STT_SMOKE_AUDIO_PATH to be configured.
+- Real speech recognition was therefore not validated in this run.
+
+Warning:
+- Starlette's TestClient emitted a DeprecationWarning because
+  anyio.abc.BlockingPortal is deprecated in favor of
+  anyio.from_thread.BlockingPortal.
+- The warning did not fail the suite.
+
+3.2 Frontend type-check and production build
+
+Command, run from the frontend directory:
+  npm run build
+
+Result: PASS
+
+Actual result:
+- The script ran tsc --noEmit successfully.
+- Vite 8.3.8 transformed 5 modules and produced the production frontend build.
+- Build completed in 216 ms.
+- Exit code: 0.
+
+4. NOT EXECUTED IN THIS RUN
+---------------------------
+
+The following checks were not run and must not be reported as passed:
+
+- Manual browser testing of registration, sign-in, session restoration,
+  microphone permission handling, recording, playback, and responsive layout.
+- Live integration against the PostgreSQL 16 Docker container. The automated
+  suite's isolated authentication/history tests are not evidence of this
+  container-level integration.
+- Optional real Faster-Whisper, MarianMT, or Kokoro model inference.
+- CUDA/cuDNN installation or GPU inference.
+- Real translation-quality, speech-recognition-quality, or latency evaluation.
+- Load, penetration, or production security testing.
+
+The fake TTS provider returns placeholder bytes that are not playable speech.
+Passing API tests with fake providers does not prove real speech output quality
+or browser playback with a real TTS result.
+
+5. TEST RESULT MATRIX
+---------------------
+
+Check                                      Result
+----------------------------------------   ------------------------------
+Backend automated suite                   PASS: 130 passed, 1 skipped
+Frontend TypeScript check and build        PASS
+Optional real STT smoke test              SKIPPED
+Manual browser workflows                  NOT RUN
+PostgreSQL Docker integration             NOT RUN
+Real model/CUDA inference                 NOT RUN
+Load/security testing                     NOT RUN
+
+6. DEFECTS AND OBSERVATIONS
+---------------------------
+
+Critical/high defects reported by the executed automated tests: 0
+Other defects reported by the executed automated tests: None recorded
+Note: Manual and security assessments were not run; this is not a full defect
+audit.
+
+Non-blocking observation:
+- The backend test run reports the Starlette/AnyIO deprecation warning listed
+  above. Track and address it through normal dependency maintenance if it
+  persists after a compatible dependency update.
+
+7. CONCLUSION
+-------------
+
+The backend automated suite and frontend production build passed for source
+revision 578f7de. These results provide evidence for automated backend
+behavior and frontend compilation only. Complete the manual, database-container,
+and optional real-model checks before describing the entire application as
+fully validated.
+
+8. EXECUTION RECORD FOR SUBMISSION
+----------------------------------
+
+Tester:
+Test date:
+Source revision:
+Backend command and result:
+Frontend command and result:
+Manual checks performed:
+PostgreSQL integration result:
+Optional real-model result:
+Open defects / follow-up:
+Evidence or screenshot locations:
+
+If any command is rerun, append the new date, revision, exact command, exit
+code, and result. Do not overwrite this run with later results.

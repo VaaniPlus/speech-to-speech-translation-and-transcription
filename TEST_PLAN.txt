@@ -1,0 +1,454 @@
+VAANIPLUS
+SOFTWARE TEST PLAN
+==================
+
+Document version: 1.0
+Status: Sample plan - execution results must be filled in after testing
+Prepared: 2026-11-20
+
+IMPORTANT
+---------
+This is a realistic, project-specific test-plan draft for coursework. It is
+not a test report and does not claim that any test passed. Record the actual
+date, result, evidence, and defects after executing each test.
+
+1. PURPOSE
+----------
+
+This plan describes how to verify VaaniPlus, a local-first English-Hindi
+translation application with typed text, speech input, account authentication,
+and per-user conversion history.
+
+2. TEST OBJECTIVES
+------------------
+
+- Verify both translation directions: en-to-hi and hi-to-en.
+- Verify typed translation and generated audio.
+- Verify speech upload validation, transcription, translation, and synthesis.
+- Verify account registration, sign-in, session validation, and sign-out.
+- Verify conversion history retention and user isolation.
+- Verify safe errors, request IDs, audio cleanup, and retry/reset behavior.
+- Verify the default automated suite runs without model downloads or a GPU.
+- Keep optional real-model quality checks separate from routine automated tests.
+
+3. SCOPE
+--------
+
+In scope:
+- FastAPI request validation and documented response behavior.
+- Typed-text translation and text-to-speech API workflows.
+- Speech-to-text and speech-to-speech API workflows.
+- Mock and real provider selection behavior.
+- PostgreSQL account and conversion-history behavior.
+- Frontend authentication, recording, result display, playback, and recovery.
+- Privacy and temporary audio-file handling.
+
+Out of scope:
+- Scientific evaluation of translation quality.
+- Guaranteed processing latency or uptime.
+- Mobile-native application testing.
+- Languages other than English and Hindi.
+- Production cloud deployment, penetration testing, or load testing.
+- Real-model tests in the default automated test run.
+
+4. TEST STRATEGY
+----------------
+
+4.1 Test levels
+
+Unit tests:
+- Validate request/response schemas, service logic, provider interfaces,
+  configuration, and audio utilities.
+- Use deterministic fake providers.
+
+API/integration tests:
+- Exercise FastAPI routes with the in-process test client.
+- Verify response codes, payloads, headers, error formats, and provider
+  interactions.
+- Use isolated test databases for authentication/history tests.
+
+Frontend/manual tests:
+- Use the browser workspace and local Vite proxy.
+- Verify visible behavior, microphone permissions, playback, session flow,
+  responsiveness on desktop, keyboard access, and recovery messages.
+
+Database integration:
+- Start PostgreSQL 16 with Docker Compose.
+- Verify account and conversion persistence and per-user history isolation.
+- Do not use production or personal account data.
+
+Optional real-model smoke tests:
+- Run only when model downloads, storage, and hardware are available and
+  approved.
+- Clearly distinguish real model results from mock output.
+
+4.2 Test types
+
+- Functional testing.
+- Input validation and negative testing.
+- API contract testing.
+- Database persistence and isolation testing.
+- Browser compatibility and basic accessibility checks.
+- Privacy and resource-cleanup checks.
+- Optional manual real-model smoke testing.
+
+5. TEST ENVIRONMENT
+-------------------
+
+Backend:
+- Python 3.11 environment managed by uv.
+- FastAPI test client and deterministic fake providers.
+- Default automated tests do not require a running API server, GPU, or model
+  downloads.
+
+Frontend:
+- Vite development server at 127.0.0.1:5173.
+- Backend at 127.0.0.1:8000.
+- Vite /api proxy configured to forward requests to the backend.
+- A desktop browser with JavaScript and MediaRecorder support.
+
+Database integration:
+- PostgreSQL 16 container started from the repository root with:
+  docker compose up -d postgres
+- Use test-only accounts and data.
+
+Real-model environment (optional):
+- Real provider mode and required local model dependencies.
+- Compatible local model runtime and available model weights.
+- CUDA testing is optional and shall not block the default test suite.
+
+6. ENTRY AND EXIT CRITERIA
+--------------------------
+
+Entry criteria:
+- Test build is available and the intended code revision is identified.
+- Required Python and frontend dependencies are installed.
+- Test data contains no personal or production credentials.
+- For database integration, the PostgreSQL test service is available.
+
+Exit criteria:
+- All required planned functional cases have an actual result recorded.
+- No unresolved critical or high-severity defects remain for the demonstrated
+  workflows.
+- Failed or blocked cases include a reason and follow-up action.
+- Automated test command and frontend build command are recorded with their
+  real outputs.
+- Optional real-model checks are clearly marked optional and are not confused
+  with mock-provider results.
+
+7. TEST CASES
+-------------
+
+For each case, set Result to PASS, FAIL, BLOCKED, or NOT RUN only after
+execution. Record the date, evidence, and issue reference in the execution log.
+
+TC-001 - API health
+Requirement: FR-018
+Type: API
+Steps:
+1. Start the backend in mock mode.
+2. Request GET /api/health.
+Expected:
+- HTTP 200 response with status "ok".
+- The health request does not load or download speech models.
+Result: NOT RUN
+Evidence / issue:
+
+TC-002 - Typed English-to-Hindi translation
+Requirement: FR-001, FR-009
+Type: API
+Steps:
+1. Submit non-empty English source text with direction en-to-hi.
+2. Inspect response direction, source/target language, source text, and output.
+Expected:
+- Request succeeds with correct direction and language metadata.
+- A mock response is labeled/recognizable as placeholder output when mock
+  mode is active.
+Result: NOT RUN
+Evidence / issue:
+
+TC-003 - Typed Hindi-to-English translation
+Requirement: FR-001, FR-009
+Type: API
+Steps:
+1. Submit non-empty Hindi source text with direction hi-to-en.
+2. Inspect response direction, source/target language, source text, and output.
+Expected:
+- Request succeeds with correct direction and language metadata.
+Result: NOT RUN
+Evidence / issue:
+
+TC-004 - Empty text and invalid direction
+Requirement: FR-001, FR-009, FR-017
+Type: Negative API
+Steps:
+1. Submit empty or whitespace-only text.
+2. Submit an unsupported direction.
+Expected:
+- Each request returns a client error with a stable, safe error response.
+- The frontend does not show stale results as the new response.
+Result: NOT RUN
+Evidence / issue:
+
+TC-005 - Standalone speech-to-text
+Requirement: FR-007, FR-008
+Type: API
+Steps:
+1. Submit a valid supported audio file with an English or Hindi hint.
+2. Repeat without a language hint.
+Expected:
+- Response includes transcript, requested/detected language metadata, and
+  success status.
+- Mock output is clearly not represented as a real transcription.
+Result: NOT RUN
+Evidence / issue:
+
+TC-006 - Invalid and oversized audio
+Requirement: FR-007, FR-017
+Type: Negative API
+Steps:
+1. Submit empty audio.
+2. Submit a file whose content signature does not match the declared type.
+3. Submit an unsupported media type.
+4. Submit a file larger than the configured maximum.
+Expected:
+- The API returns appropriate safe client errors (including 413 for a
+  configured size-limit violation).
+- Invalid uploads are closed and do not leave temporary files behind.
+Result: NOT RUN
+Evidence / issue:
+
+TC-007 - Speech-to-speech translation
+Requirement: FR-010, FR-011, FR-013
+Type: API integration
+Steps:
+1. Submit supported audio with direction en-to-hi.
+2. Repeat with supported Hindi audio and direction hi-to-en.
+3. Inspect audio body and metadata response headers.
+Expected:
+- STT, language check, translation, and TTS execute in order.
+- Response body contains provider audio bytes and encoded
+  transcript/translation metadata with correct language and direction headers.
+- With the default fake TTS provider, audio bytes are placeholders and are not
+  playable speech.
+Result: NOT RUN
+Evidence / issue:
+
+TC-008 - Speech language mismatch
+Requirement: FR-011, FR-017
+Type: Negative API
+Steps:
+1. Configure the test STT fake to report a language that conflicts with the
+   submitted translation direction.
+2. Submit a speech-translation request.
+Expected:
+- Request is rejected with a safe source-language-mismatch response.
+- Translation and TTS are not treated as a successful completed conversion.
+Result: NOT RUN
+Evidence / issue:
+
+TC-009 - Typed text-to-speech
+Requirement: FR-012
+Type: API
+Steps:
+1. Submit non-empty text and target language en.
+2. Repeat with target language hi.
+3. Submit empty text and an unsupported language.
+Expected:
+- Supported requests return an audio response with a supported content type.
+- The default fake provider's response is not validated as playable audio.
+- Invalid requests return safe client errors.
+Result: NOT RUN
+Evidence / issue:
+
+TC-010 - Registration, sign-in, and current user
+Requirement: FR-002, FR-003, FR-004
+Type: API integration
+Steps:
+1. Register a new test account using a unique test email.
+2. Sign in with the same credentials.
+3. Call GET /api/auth/me with the returned bearer token.
+Expected:
+- Registration and sign-in return a token and public user data.
+- The current-user endpoint returns the matching account.
+- The stored credential is a password hash, not plaintext.
+Result: NOT RUN
+Evidence / issue:
+
+TC-011 - Duplicate account and invalid credentials
+Requirement: FR-002, FR-003, FR-017
+Type: Negative API
+Steps:
+1. Attempt to register the same email twice.
+2. Attempt sign-in with an incorrect password.
+3. Call the protected current-user endpoint with an invalid/expired token.
+Expected:
+- Duplicate registration returns 409.
+- Invalid credentials or token return 401 with safe messages.
+Result: NOT RUN
+Evidence / issue:
+
+TC-012 - Per-user history retention and isolation
+Requirement: FR-014, FR-015
+Type: Database integration
+Steps:
+1. Create two isolated test accounts.
+2. Save more than five conversions for account A.
+3. Save a conversion for account B.
+4. Fetch history separately with each account's token.
+Expected:
+- Each response contains only that account's records.
+- Account A receives no more than its five newest records.
+- Account B does not receive account A's records.
+Result: NOT RUN
+Evidence / issue:
+
+TC-013 - Optional authentication and history persistence
+Requirement: FR-014, FR-016
+Type: API integration
+Steps:
+1. Submit a typed or speech translation without a bearer token.
+2. Submit the same type of request with a valid test token.
+3. Inspect the corresponding account history.
+Expected:
+- Both translation requests can complete.
+- The unauthenticated request is not saved.
+- The authenticated completed request is saved for that account.
+Result: NOT RUN
+Evidence / issue:
+
+TC-014 - Browser sign-in and session restoration
+Requirement: FR-003, FR-004
+Type: Frontend manual
+Steps:
+1. Sign in through the browser UI.
+2. Confirm the translation workspace and account controls appear.
+3. Reload or reopen the page in the same browser session.
+4. Sign out.
+Expected:
+- A valid token restores the session in the same browser session.
+- Sign-out clears session state and returns to the authentication screen.
+Result: NOT RUN
+Evidence / issue:
+
+TC-015 - Browser microphone permission handling
+Requirement: FR-006, FR-020
+Type: Frontend manual
+Steps:
+1. Deny microphone permission and select Start.
+2. Allow permission and start, stop, and submit a short recording.
+3. Reset or leave the page during a recording.
+Expected:
+- Denial produces recovery guidance without a crash.
+- Recording controls and progress state update correctly.
+- Microphone tracks stop on stop/reset/page hide or leave.
+Result: NOT RUN
+Evidence / issue:
+
+TC-016 - Browser result playback and recovery
+Requirement: FR-013, FR-017
+Type: Frontend manual
+Steps:
+1. Complete a typed translation and a speech translation using a real local
+   TTS provider or a valid WAV test fixture.
+2. Play, pause, replay, and reset the result.
+3. Simulate a provider or audio playback failure.
+Expected:
+- Source and translated text are separate.
+- Audio controls work for a valid supported audio response.
+- Errors are visible and a retry or reset is possible.
+- The default FakeTTSProvider returns placeholder bytes and must not be used
+  to claim playable generated speech.
+Result: NOT RUN
+Evidence / issue:
+
+TC-017 - Privacy and temporary-file handling
+Requirement: FR-020, NFR-004, NFR-005
+Type: Inspection / integration
+Steps:
+1. Run successful and failing STT requests with a test audio file.
+2. Inspect the configured temporary-file area and application logs.
+Expected:
+- Temporary STT audio files are cleaned up on success and failure.
+- Logs do not contain raw audio, full transcript text, secrets, or local
+  traceback/path details in client responses.
+Result: NOT RUN
+Evidence / issue:
+
+TC-018 - Mock and real provider selection
+Requirement: FR-019
+Type: Automated / configuration
+Steps:
+1. Start an application configured for mock mode.
+2. Start an application configured for real mode without making a real model
+   request unless model use has been approved.
+Expected:
+- Mock mode installs fake providers.
+- Real mode selects configured adapters without eagerly loading model weights
+  during application startup.
+Result: NOT RUN
+Evidence / issue:
+
+8. AUTOMATED VALIDATION COMMANDS
+-------------------------------
+
+Run commands from the repository root unless noted. Record the real exit code,
+summary, date, and log/evidence path after execution.
+
+Backend automated suite:
+  uv run --project backend pytest
+
+Focused authentication and history tests:
+  uv run --project backend pytest backend/tests/test_auth.py
+
+Focused translation and speech API tests:
+  uv run --project backend pytest backend/tests/test_api.py backend/tests/test_stage1_speech_to_text_api.py backend/tests/test_stage4_speech_to_speech_pipeline_api.py
+
+Frontend type-check and production build (run from frontend directory):
+  npm ci
+  npm run build
+
+PostgreSQL local integration prerequisite:
+  docker compose up -d postgres
+
+Execution record:
+  Command:
+  Date:
+  Exit code:
+  Result summary:
+  Evidence/log path:
+
+Do not copy a passing result into this plan unless the command was actually run.
+
+9. DEFECT MANAGEMENT
+--------------------
+
+Suggested severity levels:
+- Critical: core application unavailable, data corruption, or account/history
+  data exposed to another user. Stop release/demo until resolved.
+- High: a major required workflow fails with no reasonable workaround.
+- Medium: a feature is impaired but a documented workaround exists.
+- Low: cosmetic or minor usability issue with no material workflow impact.
+
+For every defect, record:
+- Defect ID and short title.
+- Steps to reproduce and expected/actual behavior.
+- Environment and application revision.
+- Severity, owner, status, and retest result.
+- Screenshot, test output, request ID, or log evidence where appropriate.
+
+10. TEST EXECUTION SUMMARY
+--------------------------
+
+Planned test cases: 18
+Passed:
+Failed:
+Blocked:
+Not run:
+Open critical/high defects:
+Tested application revision:
+Tester:
+Execution dates:
+
+Complete this summary only after actual execution. A plan is not evidence that
+the tests have passed.

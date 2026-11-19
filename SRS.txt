@@ -1,0 +1,544 @@
+VAANIPLUS
+SOFTWARE REQUIREMENTS SPECIFICATION (SRS)
+=========================================
+
+Document version: 1.0
+Prepared: 2026-11-20
+Specification basis: Current repository documentation and implementation
+
+1. INTRODUCTION
+---------------
+
+1.1 Purpose
+
+This Software Requirements Specification defines the functional and
+non-functional requirements for VaaniPlus, a local-first English-Hindi
+translation and transcription web application. It is intended for software
+engineering coursework, implementation, testing, demonstration, and review.
+
+1.2 Scope
+
+VaaniPlus allows a user to translate typed text or recorded speech between
+English and Hindi. For speech input, the system transcribes the source audio,
+translates the transcript, and synthesizes speech in the target language.
+Users can register or sign in and review up to five recent translations saved
+to a local PostgreSQL database.
+
+The application consists of a browser frontend, a FastAPI backend, replaceable
+speech and translation providers, and a PostgreSQL database. The frontend and
+backend are intended to run locally during development. PostgreSQL is run
+locally through Docker Compose.
+
+1.3 Intended audience
+
+- Software engineering students and instructors.
+- Developers implementing or maintaining VaaniPlus.
+- Testers verifying the user workflows and API behavior.
+- Reviewers evaluating the project scope and limitations.
+
+1.4 Definitions and abbreviations
+
+- API: Application Programming Interface.
+- STT: Speech-to-text.
+- TTS: Text-to-speech.
+- JWT: JSON Web Token used as a bearer access token.
+- Provider: Replaceable implementation of a speech recognition, translation,
+  or speech synthesis interface.
+- Mock mode: Runtime mode using deterministic fake providers; output is
+  illustrative and is not real translation or playable generated speech.
+- Real mode: Runtime mode using configured local model adapters.
+- Conversion: A successful typed-text or speech translation associated with
+  an authenticated account.
+
+1.5 References
+
+- docs/requirements.md - Project requirements and acceptance scenarios.
+- docs/architecture.md - Architecture, data flow, and operational constraints.
+- docs/api.md - API routes, payloads, and error behavior.
+- docs/testing.md - Automated and optional real-model testing.
+- README.md - Setup, project structure, and local development instructions.
+
+2. OVERALL DESCRIPTION
+----------------------
+
+2.1 Product perspective
+
+VaaniPlus is a standalone local web application. The browser presents the
+authentication screen and translation workspace. The Vite development server
+serves the frontend and proxies /api requests to the FastAPI backend. The
+backend validates requests, coordinates services and providers, and accesses
+PostgreSQL for accounts and optional conversion history.
+
+Real speech and language inference uses local provider adapters. Model weights
+may be downloaded from configured model hosts on first use and cached locally.
+The default mock mode uses fake providers and avoids model inference.
+
+2.2 Product functions
+
+- Register an account, sign in, restore an existing browser session, and sign
+  out.
+- Select English-to-Hindi or Hindi-to-English translation.
+- Enter typed text and receive translated text and generated target-language
+  speech.
+- Record audio using an explicitly started browser microphone session, submit
+  the recording, and receive a transcript, translation, and generated speech.
+- Play, pause, replay, reset, or retry supported workspace operations.
+- Save successful typed and speech conversions for an authenticated user.
+- Display the signed-in user's five most recent saved conversions.
+- Return stable validation and processing errors without exposing internal
+  tracebacks or local paths.
+
+2.3 User classes and characteristics
+
+Primary user:
+- Uses a supported desktop browser with JavaScript enabled.
+- Can type English or Hindi text, or speak into an available microphone.
+- Grants microphone access when choosing to record.
+- May create an account or use an existing local account.
+
+Developer or presenter:
+- Starts the backend, frontend, and PostgreSQL service locally.
+- Chooses mock mode for repeatable testing or real mode when model dependencies
+  and compatible system resources are available.
+- Uses the API documentation and automated tests during development.
+
+No separate administrator role is defined.
+
+2.4 Operating environment
+
+- Frontend: Vite development server, vanilla TypeScript, HTML, and CSS.
+- Backend: Python 3.11, FastAPI, and Uvicorn.
+- Database: PostgreSQL 16 in a Docker Compose container.
+- Development addresses: frontend 127.0.0.1:5173, backend
+  127.0.0.1:8000, PostgreSQL port 5432.
+- Target setup documented by the project: local development on Windows.
+- Microphone capture requires a browser supporting MediaRecorder and a secure
+  context (HTTPS or localhost).
+
+2.5 Design and implementation constraints
+
+- Only English and Hindi are supported.
+- Supported directions are en-to-hi and hi-to-en.
+- Speech models and inference implementations must remain behind provider
+  interfaces.
+- The default automated test suite must run with fake providers and without
+  downloading model weights or requiring a GPU.
+- The browser must not directly import or invoke model implementations.
+- API routes must not expose provider tracebacks, secrets, or machine-specific
+  paths.
+- The frontend development proxy is local-development infrastructure; the
+  static frontend alone does not provide a hosted backend.
+
+2.6 Assumptions and dependencies
+
+- The user has a compatible browser and, for speech input, a working microphone.
+- Docker is available to run the local PostgreSQL service when authentication
+  or conversion history is used.
+- Real mode requires the configured model packages, model weights, and
+  compatible CPU/GPU runtime libraries.
+- The first real-model request may require network access to configured model
+  hosts unless the required weights are already cached.
+- In mock mode, fake provider output is not evidence of translation quality or
+  speech quality.
+- Translation accuracy, recognition accuracy, synthesis quality, and latency
+  depend on the selected models, input audio, and local hardware. No quality
+  or latency guarantee is specified.
+
+3. SYSTEM FEATURES AND USE CASES
+--------------------------------
+
+3.1 Account registration and sign-in
+
+An unauthenticated user can submit email and password credentials to register
+or sign in. On success, the frontend stores the returned bearer token in
+sessionStorage and opens the translation workspace. The frontend can validate
+the saved token through the current-user endpoint when the page loads. Sign-out
+clears the token in the current browser session.
+
+3.2 Typed-text translation
+
+The user selects a direction and enters non-whitespace source text. The
+frontend submits a JSON request to the translation API. The backend validates
+the direction and source text, invokes the translation service/provider, and
+returns the source, translation, direction, language metadata, and status.
+After successful translation, the frontend requests target-language speech
+from the text-to-speech API and provides audio playback controls.
+
+3.3 Speech translation
+
+The user explicitly starts microphone capture and grants permission. The
+browser records audio in memory. The user stops recording and submits it with
+a direction. The backend validates the upload, transcribes the audio, checks
+that the detected language matches the selected direction, translates the
+transcript, and synthesizes target-language speech. The response body contains
+the generated audio; the transcript, translation, direction, and language
+metadata are returned in response headers.
+
+3.4 Standalone speech-to-text
+
+An API client can submit an audio file and an optional English or Hindi
+language hint to the speech-to-text endpoint. If the hint is omitted, the
+provider may detect the language. The response includes the transcript and
+language metadata.
+
+3.5 Conversion history
+
+When a valid bearer token is supplied to typed translation or speech
+translation, the backend saves the completed conversion for the authenticated
+user. Each user retains at most five recent records, ordered newest first.
+The protected history endpoint returns only the requesting user's records.
+Requests without a token may use the translation endpoints but do not save
+history. The history endpoint requires authentication.
+
+4. EXTERNAL INTERFACE REQUIREMENTS
+----------------------------------
+
+4.1 User interface
+
+The frontend shall provide:
+- Sign-in and account-registration forms.
+- A translation workspace available after frontend authentication.
+- A selector limited to the two supported translation directions.
+- Typed-text and voice-input modes.
+- Microphone start, stop, and submit controls.
+- Distinct source and translated text displays.
+- Generated-audio playback, pause, and replay controls.
+- Loading, success, error, and recording status feedback.
+- A reset action and a recent-conversion history display.
+- Keyboard-accessible controls and desktop-browser layout.
+
+4.2 Software interfaces
+
+All application API paths below are under the /api prefix.
+
+- GET /health
+  Returns API process health. It does not initialize speech models.
+- POST /auth/register
+  Accepts email and password; creates an account and returns a bearer token
+  with public user data.
+- POST /auth/login
+  Accepts email and password; returns a bearer token with public user data.
+- GET /auth/me
+  Requires a bearer token and returns the associated public user.
+- POST /translate
+  Accepts JSON direction and source_text; returns typed translation data.
+  An optional valid bearer token enables history persistence.
+- POST /speech-to-text
+  Accepts multipart audio and an optional language hint; returns transcription
+  data.
+- POST /speech-translate
+  Accepts multipart audio and direction; returns an audio file body and
+  transcript/translation metadata headers. An optional valid bearer token
+  enables history persistence.
+- POST /text-to-speech
+  Accepts JSON text and target_language; returns generated audio.
+- GET /conversions/history
+  Requires a bearer token and returns up to five recent conversions belonging
+  to that account.
+
+4.3 Communications interfaces
+
+- Frontend HTTP requests use the same-origin /api path and are proxied by Vite
+  to the local backend during development.
+- Authentication uses the HTTP Authorization: Bearer <token> header.
+- Speech uploads use multipart/form-data.
+- Typed translation and speech synthesis use JSON.
+- Speech-translation success responses use audio bytes as the body and
+  percent-encoded UTF-8 transcript and translation values in headers.
+- The backend returns an X-Request-ID correlation header.
+- Browser CORS access is restricted to configured loopback development
+  origins. Direct file:// pages are not supported.
+
+4.4 Hardware interfaces
+
+- Microphone input is accessed through browser media APIs only after explicit
+  user action and browser permission.
+- CPU inference is the baseline; optional GPU inference requires compatible
+  model runtime libraries and hardware.
+
+5. FUNCTIONAL REQUIREMENTS
+--------------------------
+
+FR-001 - Supported directions
+The system shall support English-to-Hindi (en-to-hi) and Hindi-to-English
+(hi-to-en), and shall reject unsupported directions.
+
+FR-002 - Account registration
+The system shall allow a user to register using an email address and a
+password of 8 to 128 characters. The backend shall normalize the email to
+lowercase and reject duplicate accounts.
+
+FR-003 - Account authentication
+The system shall verify a user's credentials and return a signed bearer access
+token and public user data after successful registration or sign-in.
+
+FR-004 - Session handling
+The frontend shall store the access token in sessionStorage, validate a
+restored token through the current-user API, and remove invalid or expired
+tokens. Sign-out shall clear the frontend token and return the user to the
+authentication screen.
+
+FR-005 - Direction selection
+The frontend shall allow the user to select only en-to-hi or hi-to-en and
+shall display the corresponding source and target languages.
+
+FR-006 - Explicit microphone capture
+The frontend shall request microphone access only after the user selects the
+record action. It shall provide start and stop controls and explain permission
+or device failures.
+
+FR-007 - Audio upload validation
+The backend shall reject empty, unsupported, mismatched, or oversized audio
+uploads with a client-safe error. Supported media include WAV, MPEG, FLAC,
+OGG, WebM, and MP4 audio, including documented aliases. The default maximum
+upload size shall be 25 MiB and shall be configurable.
+
+FR-008 - Speech-to-text
+The backend shall transcribe supported English or Hindi audio and return the
+transcript, requested language when provided, detected language, optional
+confidence, and success status.
+
+FR-009 - Typed translation
+The backend shall accept non-whitespace source text and a supported direction,
+invoke the configured translation provider, and return source text,
+translated text, direction, source and target language codes, and status.
+
+FR-010 - Speech translation pipeline
+The backend shall process speech translation in order: audio validation,
+speech-to-text, source-language verification, text translation, and
+text-to-speech synthesis.
+
+FR-011 - Source-language verification
+For speech translation, the backend shall reject a detected source language
+that does not match the source language implied by the selected direction.
+
+FR-012 - Text-to-speech
+The backend shall synthesize non-whitespace text in the requested supported
+target language and return generated audio using a supported audio content
+type.
+
+FR-013 - Result presentation
+The frontend shall display the source text or transcript separately from the
+translated text. It shall provide playback, pause, and replay controls when
+audio is available.
+
+FR-014 - Conversion history persistence
+For authenticated requests to typed translation or speech translation, the
+backend shall save the completed conversion's direction, source text,
+translated text, timestamp, and user association.
+
+FR-015 - History retention and access
+The backend shall retain no more than five recent conversions per user. The
+history endpoint shall require a valid bearer token and shall not return
+another user's records.
+
+FR-016 - Optional authentication for translation
+The backend shall continue to accept typed and speech translation requests
+without a bearer token. Such requests shall not save conversion history.
+
+FR-017 - API error responses
+The backend shall return stable, client-safe errors for validation failures,
+provider failures, unavailable providers, and timeouts. Errors shall include
+a stable code, safe message, stage when known, and request correlation ID.
+
+FR-018 - Health check
+The backend shall provide a health endpoint that reports process availability
+without loading or downloading speech models.
+
+FR-019 - Mock and real providers
+The backend shall support fake providers for deterministic development and
+automated testing, and replaceable real provider adapters for local inference.
+Mock output shall be identified as placeholder output and shall not be
+presented as real translation or playable generated speech.
+
+FR-020 - Audio and temporary-file cleanup
+The backend shall remove temporary audio files after inference on both success
+and failure. The browser shall release microphone tracks when recording stops,
+is reset, or the page is hidden or left.
+
+6. DATA REQUIREMENTS
+--------------------
+
+6.1 User data
+
+- User ID: integer primary key.
+- Email: unique account identifier, normalized to lowercase.
+- Password hash: stored hash only; plaintext passwords shall not be persisted.
+- Created timestamp.
+
+6.2 Conversion data
+
+- Conversion ID: integer primary key.
+- User ID: foreign key to the owning account; deletion of a user cascades to
+  that user's conversions.
+- Direction: en-to-hi or hi-to-en.
+- Source text: typed source text or recognized speech transcript.
+- Translated text: completed target-language translation.
+- Created timestamp.
+- Maximum retained records: five per user.
+
+6.3 Audio and model data
+
+- Raw microphone recordings are held in browser memory and submitted only
+  after explicit user action. A recording may remain temporarily in page
+  memory for retry; it is not part of the PostgreSQL conversion record.
+- Temporary server-side STT files are removed after inference.
+- Model weights and caches are local runtime data, not application records.
+
+6.4 Data protection
+
+- The application shall not log raw audio or full private transcript text by
+  default.
+- Database credentials and JWT signing secrets shall be supplied through local
+  environment configuration, not committed to source control.
+- This specification does not define application-level encryption at rest;
+  local host and database protections remain the operator's responsibility.
+
+7. NON-FUNCTIONAL REQUIREMENTS
+------------------------------
+
+NFR-001 - Local-first operation
+The default mock configuration shall support local workflow testing without
+external inference services or model downloads. Real mode may contact
+configured model hosts to obtain missing model weights.
+
+NFR-002 - Provider independence
+Route and service code shall call typed provider interfaces rather than depend
+directly on concrete model libraries.
+
+NFR-003 - Responsiveness
+Synchronous model-provider calls shall not block the FastAPI event loop.
+Provider calls shall use the configured timeout; the documented default is
+120 seconds per call.
+
+NFR-004 - Error safety
+API error responses shall not expose stack traces, provider exception details,
+secrets, or machine-specific filesystem paths.
+
+NFR-005 - Privacy-aware logging
+Operational logs shall include request correlation, outcome, duration, and
+stage information as appropriate, but shall not include raw audio or full
+transcript/translation payloads by default.
+
+NFR-006 - Input limits
+The backend shall validate supported audio types and content signatures,
+enforce the configured upload-size limit, and reject invalid language or
+direction values.
+
+NFR-007 - Testability
+The default automated test suite shall use deterministic fake providers and
+shall not require a GPU, model downloads, or an externally running API server.
+
+NFR-008 - Maintainability
+The system shall keep API routing, orchestration services, provider adapters,
+request/response schemas, persistence models, and frontend behavior in
+separable modules.
+
+NFR-009 - Usability and accessibility
+Primary actions shall have visible labels, keyboard access, and distinguishable
+loading, success, and error feedback. Microphone and playback failures shall
+provide recovery guidance.
+
+NFR-010 - Configuration and portability
+Environment-specific settings, credentials, model weights, generated audio,
+temporary recordings, caches, and virtual environments shall not be committed
+to source control.
+
+NFR-011 - Availability and quality limitations
+The system shall communicate processing failures and permit retry or reset.
+No numeric uptime, translation accuracy, speech recognition accuracy,
+translation quality, or latency target is claimed by this release.
+
+8. ERROR HANDLING REQUIREMENTS
+------------------------------
+
+- Invalid request fields, unsupported directions, unsupported languages, and
+  invalid or empty input shall return a client error with a safe message.
+- Oversized audio shall return HTTP 413.
+- Unsupported or mismatched audio media shall return HTTP 415.
+- Validation failures generally use HTTP 4xx responses, including HTTP 422
+  where applicable.
+- Missing providers shall return HTTP 503.
+- Provider failures shall return HTTP 502.
+- Provider timeouts shall return HTTP 504 and identify the failed stage.
+- Invalid credentials or tokens shall return HTTP 401.
+- Duplicate account registration shall return HTTP 409.
+- Unexpected server errors shall use a safe response and a request ID.
+- A failed request shall not leave stale results presented as the new result;
+  the UI shall allow the user to retry or reset.
+
+9. ACCEPTANCE CRITERIA
+----------------------
+
+AC-001 - Typed English-to-Hindi
+Given non-empty English source text and direction en-to-hi, when translation
+completes, the response and UI shall show the source text, Hindi translation,
+and matching language metadata.
+
+AC-002 - Typed Hindi-to-English
+Given non-empty Hindi source text and direction hi-to-en, when translation
+completes, the response and UI shall show the source text, English translation,
+and matching language metadata.
+
+AC-003 - Speech translation in both directions
+Given supported audio matching the selected direction, when speech
+translation completes, the system shall return a source transcript, target
+translation, and generated target-language audio.
+
+AC-004 - Audio playback
+Given a valid generated audio response, the user shall be able to play, pause,
+and replay the audio in a supported browser.
+
+AC-005 - Microphone denial
+Given that microphone access is denied, the UI shall explain how to recover
+and shall not retain an active microphone stream.
+
+AC-006 - Invalid input
+Given empty text, an invalid direction, unsupported audio, or an oversized
+upload, the API shall return a safe client error and the UI shall not present
+stale output as a successful result.
+
+AC-007 - Authentication
+Given valid credentials, registration or sign-in shall return a bearer token.
+Invalid credentials shall be rejected. A valid token shall resolve to its
+account through the current-user endpoint.
+
+AC-008 - History isolation and retention
+Given authenticated users A and B, each user shall receive only their own
+history, and no account shall retain more than its five newest conversions.
+
+AC-009 - Optional translation authentication
+Given a translation request without a token, the translation API shall remain
+usable and shall not persist a history entry.
+
+AC-010 - Provider failure
+Given an unavailable, failing, or timed-out provider, the API shall return a
+controlled stage-specific response without exposing internal exception
+details, and the UI shall allow retry or reset.
+
+AC-011 - Automated test repeatability
+The documented backend test suite shall run using fake providers without model
+downloads or GPU access.
+
+10. OUT OF SCOPE
+----------------
+
+- Languages other than English and Hindi.
+- Live, full-duplex conversation or continuous background recording.
+- Multi-party calls, meeting transcription, or call recording.
+- Cloud-hosted user accounts, cloud database, or cloud inference.
+- Native mobile applications or mobile-specific interface guarantees.
+- Voice cloning, speaker identity preservation, or speaker diarization.
+- Translation plus transliteration as a combined feature.
+- Scientific benchmarking or guarantees of translation quality and latency.
+- Administrative roles, account recovery, email verification, or multi-factor
+  authentication.
+
+11. REQUIREMENTS TRACEABILITY
+-----------------------------
+
+The requirements and acceptance criteria in this document are based on the
+current project behavior described in docs/requirements.md, docs/api.md,
+docs/architecture.md, docs/testing.md, and the corresponding frontend and
+backend implementation. If the implementation changes, update this SRS and
+the related project documentation together.

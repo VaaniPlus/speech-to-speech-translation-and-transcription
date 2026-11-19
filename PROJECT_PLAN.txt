@@ -1,0 +1,365 @@
+VAANIPLUS
+SOFTWARE PROJECT PLAN
+=====================
+
+Document version: 1.0
+Status: Illustrative coursework plan - adapt dates, names, and status
+Prepared: 2026-11-20
+Planning basis: Six relative weeks; not a record of actual work dates
+
+IMPORTANT
+---------
+This is a realistic sample plan based on the VaaniPlus project. It is not a
+historical project log. Replace relative weeks, role assignments, progress,
+and completion claims with facts from the actual project before submission.
+
+1. PROJECT OVERVIEW
+-------------------
+
+Project name:
+VaaniPlus - English-Hindi Speech Translation and Transcription
+
+Project purpose:
+Build a local-first browser application that translates typed text and
+recorded speech between English and Hindi. Speech input is transcribed,
+translated, and synthesized as target-language audio. Users can sign in and
+view their five most recent saved conversions.
+
+Proposed planning duration:
+Six weeks, measured from an agreed project start date. The exact calendar
+dates are to be set by the student/team and course deadline.
+
+2. PROJECT OBJECTIVES
+---------------------
+
+- Deliver typed English-to-Hindi and Hindi-to-English translation workflows.
+- Deliver speech upload, transcription, translation, and audio synthesis
+  workflows in both directions.
+- Provide account registration/sign-in and user-scoped recent history.
+- Keep inference replaceable through provider interfaces.
+- Support repeatable mock-mode testing without model downloads or a GPU.
+- Provide project documentation, test evidence, and a repeatable demonstration.
+
+3. PROJECT SCOPE
+----------------
+
+Included:
+- Vite and vanilla TypeScript browser frontend.
+- FastAPI backend and documented local HTTP API.
+- English and Hindi only.
+- Typed-text translation and generated target-language speech.
+- Explicit browser microphone capture and speech translation.
+- Fake providers for deterministic development/testing.
+- Optional real local providers: Faster-Whisper, MarianMT, and Kokoro.
+- PostgreSQL 16 in Docker Compose for accounts and conversion history.
+- JWT bearer authentication and a maximum of five saved conversions per user.
+- Validation, safe errors, request correlation, temporary audio cleanup,
+  documentation, and acceptance testing.
+
+Excluded:
+- Additional languages, voice cloning, speaker identity preservation, or
+  multi-party/live full-duplex calling.
+- Cloud-hosted user accounts, cloud inference, or production hosting.
+- Native mobile application.
+- Scientific translation-quality benchmarking or guaranteed latency.
+- Account recovery, email verification, and multi-factor authentication.
+
+4. PROJECT ORGANIZATION
+-----------------------
+
+Suggested role assignments:
+
+- Student project lead: owns scope, schedule, decisions, integration, and final
+  submission.
+- Backend developer: owns API routes, services, provider adapters,
+  authentication, persistence, and backend tests.
+- Frontend developer: owns sign-in, translation workspace, microphone,
+  results, playback, and history UI.
+- Test lead: maintains test cases, records actual results, files defects, and
+  verifies fixes.
+- Instructor/reviewer: reviews milestones and provides feedback.
+
+For an individual project, one student may perform the project lead,
+development, and test roles. Do not list a person as a team member or reviewer
+unless that assignment is real.
+
+5. WORK BREAKDOWN STRUCTURE
+---------------------------
+
+WBS 1 - Planning and requirements
+  1.1 Confirm users, scope, supported languages, and constraints.
+  1.2 Review existing code and project documentation.
+  1.3 Prepare and review the Software Requirements Specification.
+
+WBS 2 - Architecture and design
+  2.1 Map frontend, API, service, provider, and database responsibilities.
+  2.2 Define API request/response behavior and error handling.
+  2.3 Prepare UML and architecture diagrams.
+  2.4 Review privacy, authentication, and audio-data boundaries.
+
+WBS 3 - Backend implementation
+  3.1 Implement validation, translation, STT, TTS, and pipeline orchestration.
+  3.2 Implement mock and real provider selection.
+  3.3 Implement account authentication and database models.
+  3.4 Implement per-user conversion persistence and five-item retention.
+  3.5 Add unit and API tests.
+
+WBS 4 - Frontend implementation
+  4.1 Implement sign-in, registration, session restore, and sign-out.
+  4.2 Implement direction selection and typed-text workflow.
+  4.3 Implement microphone recording and speech submission.
+  4.4 Implement transcript/result display and audio playback.
+  4.5 Implement recent history, reset, loading, and recovery states.
+
+WBS 5 - Integration and verification
+  5.1 Connect the Vite /api proxy to FastAPI.
+  5.2 Verify PostgreSQL persistence and per-user history isolation.
+  5.3 Execute automated and manual test cases.
+  5.4 Fix defects and rerun affected tests.
+  5.5 Run optional real-model smoke tests only when local resources permit.
+
+WBS 6 - Documentation and submission
+  6.1 Update setup, API, architecture, and limitations documentation.
+  6.2 Complete the SRS, UML design, test plan, and project plan.
+  6.3 Record actual test commands, results, and evidence.
+  6.4 Prepare a repeatable demo and final submission package.
+
+6. PROPOSED RELATIVE SCHEDULE
+----------------------------
+
+Week 1 - Initiation and requirements
+Activities:
+- Confirm project goals, supported directions, user flows, and out-of-scope
+  features.
+- Review repository structure and identify technical dependencies/risks.
+- Draft SRS and acceptance criteria.
+Deliverable / gate:
+- Requirements baseline reviewed; unresolved assumptions recorded.
+
+Week 2 - Design
+Activities:
+- Confirm component boundaries, data model, API contracts, and error format.
+- Prepare UML/use-case, component, data, and sequence diagrams.
+- Decide mock-mode test strategy and local database approach.
+Deliverable / gate:
+- Design report and API/data flow reviewed before integration work.
+
+Week 3 - Backend and persistence
+Activities:
+- Implement or refine backend service and provider workflows.
+- Implement authentication, PostgreSQL persistence, and history retention.
+- Add backend tests for validation, providers, routes, and account isolation.
+Deliverable / gate:
+- Backend API workflows pass the tests actually executed; failures are logged.
+
+Week 4 - Frontend and feature integration
+Activities:
+- Implement or refine authentication and session behavior.
+- Connect typed and voice input to backend APIs.
+- Implement result display, audio controls, reset, and recent history.
+Deliverable / gate:
+- Core browser workflows are connected to the local API.
+
+Week 5 - System test and defect correction
+Activities:
+- Run API and database integration tests.
+- Perform browser tests for both directions, permission denial, playback,
+  error recovery, and account history.
+- Fix defects and retest impacted cases.
+- Run optional real-model smoke tests only if dependencies/resources are
+  approved and available.
+Deliverable / gate:
+- Test execution log has real outcomes; critical/high defects are resolved or
+  explicitly listed as open risks.
+
+Week 6 - Documentation and submission
+Activities:
+- Complete setup, API, SRS, UML, test-plan, and project-plan documents.
+- Capture actual test/build output and demo evidence.
+- Rehearse the demonstration using mock mode or approved real models.
+- Check repository contents for secrets, generated files, and missing docs.
+Deliverable / gate:
+- Reproducible final package is ready for instructor review.
+
+Schedule note:
+The weekly sequence is a planning estimate. Reorder or resize activities to
+match actual progress and the course calendar. Do not report a planned
+milestone as completed until its deliverable has been checked.
+
+7. MILESTONES AND DELIVERABLES
+------------------------------
+
+M1 - Requirements baseline
+Deliverables: SRS, scope, acceptance criteria, assumptions.
+Evidence to record: review comments or approval, if applicable.
+
+M2 - Design baseline
+Deliverables: UML/architecture diagrams, API outline, data model.
+Evidence to record: diagram review and resolved design questions.
+
+M3 - Working feature baseline
+Deliverables: backend routes/services, frontend workflows, database support.
+Evidence to record: revision identifier and a working local demonstration.
+
+M4 - Verification baseline
+Deliverables: executed test cases, defect list, retest outcomes.
+Evidence to record: exact commands, dates, exit codes, test summaries, and
+screenshots/logs where appropriate.
+
+M5 - Submission baseline
+Deliverables: source code, README/setup instructions, SRS, UML design,
+Test Plan, Project Plan, and demonstration materials.
+Evidence to record: final review checklist and submitted revision.
+
+8. RESOURCE PLAN
+----------------
+
+Required:
+- Windows development computer or an equivalent supported development setup.
+- Python 3.11 and uv for the backend.
+- Node.js/npm for the frontend.
+- Docker Desktop or compatible Docker Engine for PostgreSQL 16.
+- Desktop browser with JavaScript and MediaRecorder support.
+- Microphone for speech-input demonstration.
+
+Optional:
+- Compatible local model runtimes and sufficient storage for model weights.
+- NVIDIA GPU and compatible CUDA/cuDNN libraries for optional GPU inference.
+- Speakers/headphones for listening to generated audio.
+
+Use mock mode for routine tests and predictable demonstrations when real model
+dependencies, network access, or hardware are unavailable. The default fake
+TTS output is not playable speech; use a valid audio fixture or approved real
+TTS provider for a playback demonstration, and never describe mock output as
+real speech.
+
+9. RISKS AND MITIGATIONS
+------------------------
+
+R-01 - Real speech models are difficult to install or run
+Likelihood: Medium
+Impact: Medium to high
+Mitigation: Keep deterministic fake providers as the baseline; test CPU mode
+first; keep CUDA as optional; record exact runtime requirements.
+Trigger/response: If model loading or inference fails, demonstrate the mock
+workflow and document the limitation instead of claiming real-model success.
+
+R-02 - First-use model downloads are slow or unavailable
+Likelihood: Medium
+Impact: Medium
+Mitigation: Separate optional real-model smoke tests from the default suite;
+use mock mode for repeatable automated tests.
+
+R-03 - PostgreSQL or Docker is unavailable during demonstration
+Likelihood: Low to medium
+Impact: Medium
+Mitigation: Verify the Docker Compose health check before the demo; prepare
+setup instructions and avoid using production data.
+Trigger/response: Record the blocker and do not claim persistence validation
+without a successful database test.
+
+R-04 - Browser microphone permission or device failure
+Likelihood: Medium
+Impact: Medium
+Mitigation: Verify permissions in advance, prepare a supported sample audio
+file, and test permission-denied recovery.
+
+R-05 - Model translation or speech quality is inconsistent
+Likelihood: Medium
+Impact: Medium
+Mitigation: State that model quality depends on model and input; do not make
+accuracy claims unsupported by evaluation.
+
+R-06 - Integration changes introduce regressions
+Likelihood: Medium
+Impact: Medium
+Mitigation: Run focused tests after changes and the full documented test suite
+before the final submission; record failures and retests.
+
+R-07 - Secrets or personal audio are included in the repository
+Likelihood: Low
+Impact: High
+Mitigation: Keep secrets in local environment files, use synthetic/test audio,
+review staged files, and do not commit recordings or credentials.
+
+R-08 - Schedule is compressed for an individual student
+Likelihood: Medium
+Impact: Medium
+Mitigation: Prioritize required English/Hindi flows, authentication/history,
+automated tests, and reproducible documentation. Keep CUDA and model-quality
+experiments optional.
+
+10. QUALITY AND CHANGE CONTROL
+------------------------------
+
+- Requirements changes shall be checked for effects on API contracts,
+  database data, tests, documentation, and demo scope.
+- New features shall not silently expand the agreed language or deployment
+  scope.
+- A change is complete when its relevant tests are run, documentation is
+  updated, and any known limitation is recorded.
+- Defects shall include reproduction steps, expected and actual behavior,
+  severity, evidence, and retest status.
+- Before submission, review the final diff and repository contents for
+  generated files, secrets, and unrelated changes.
+
+11. COMMUNICATION AND STATUS
+----------------------------
+
+Suggested cadence:
+- Review the task list and risks at the start of each planned week.
+- Provide a short weekly status: completed with evidence, next tasks, blockers,
+  and decisions needed.
+- Review requirements and high-impact scope changes with the instructor or
+  project reviewer when applicable.
+
+Suggested status format:
+- Overall status: Not started / In progress / At risk / Complete.
+- Completed this period:
+- Evidence:
+- Planned next:
+- Blockers and risks:
+- Decisions required:
+
+Use the real project status and dates when completing this section; this sample
+does not assert that any milestone has been completed.
+
+12. DEFINITION OF DONE
+----------------------
+
+The project is ready for submission when:
+- Both typed translation directions are demonstrable.
+- Speech workflow and microphone-denial recovery are tested or any blocker is
+  explicitly documented.
+- Authentication and per-user history behavior are verified.
+- The default backend test suite and frontend build have actual recorded
+  results.
+- Setup, API, known limitations, and mock-versus-real behavior are documented.
+- SRS, UML design, Test Plan, and Project Plan are included.
+- No unresolved critical/high defects or unreported security/privacy issues
+  remain.
+- The final demo does not represent mock output as real model output.
+
+13. SUBMISSION CHECKLIST
+------------------------
+
+[ ] Source code and setup instructions.
+[ ] Software Requirements Specification (SRS.txt).
+[ ] UML design report (UML_DESIGN.txt).
+[ ] Test plan with actual execution results (TEST_PLAN.txt).
+[ ] Project plan updated with actual team members/dates/status, if required.
+[ ] Backend test command and actual result.
+[ ] Frontend build command and actual result.
+[ ] Screenshots or demo evidence that contain no secrets or personal audio.
+[ ] Known limitations and open defects disclosed.
+
+14. REFERENCES
+--------------
+
+- README.md
+- docs/requirements.md
+- docs/architecture.md
+- docs/api.md
+- docs/testing.md
+
+End of sample project plan.

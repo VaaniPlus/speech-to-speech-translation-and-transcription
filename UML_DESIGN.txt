@@ -1,0 +1,371 @@
+VAANIPLUS - UML DESIGN REPORT
+============================
+
+Purpose
+-------
+This report describes the current VaaniPlus English-Hindi speech translation
+project. Use the AI IMAGE GENERATION PROMPT below to create a readable system
+architecture image. The PlantUML sections can also be rendered as UML diagrams.
+
+Project summary
+---------------
+VaaniPlus is a local-first web application for English-to-Hindi and
+Hindi-to-English translation. Users can translate typed text or record speech.
+Speech translation transcribes the recording, translates the transcript, and
+generates playable speech. Users can sign in or register and view their five
+most recent saved conversions.
+
+AI IMAGE GENERATION PROMPT
+--------------------------
+Create a polished, landscape software architecture infographic for
+"VaaniPlus - English-Hindi Speech Translation". Use a clean white background,
+subtle navy and teal accents, clear readable labels, simple professional
+icons, and left-to-right data flow. Do not invent components or display secrets.
+
+Show these zones and connections:
+
+1. USER AND BROWSER
+   - User signs in or registers, selects English-to-Hindi or Hindi-to-English,
+     types text or records audio, views the transcript and translation, plays
+     generated speech, and views recent history.
+   - Browser UI is built with Vite and vanilla TypeScript.
+   - The browser captures microphone audio only after the user starts recording.
+   - The browser stores the bearer token in sessionStorage.
+
+2. FRONTEND DEVELOPMENT SERVER
+   - Vite runs on 127.0.0.1:5173.
+   - Requests under /api are proxied to the FastAPI backend at 127.0.0.1:8000.
+
+3. FASTAPI BACKEND
+   - API routes: authentication, typed translation, speech-to-text,
+     speech-to-speech translation, text-to-speech, and conversion history.
+   - Authentication validates bearer JWTs and hashes passwords.
+   - Services orchestrate provider calls and return controlled API responses.
+   - Typed translation calls the translation provider; the frontend then makes
+     a separate text-to-speech request.
+   - Speech translation follows STT -> language check -> translation -> TTS.
+   - When an authenticated user completes a text or speech translation, save
+     the conversion and keep only that user's five newest records.
+
+4. PROVIDER AND MODEL LAYER
+   - Provider interfaces: STTProvider, TranslationProvider, TTSProvider.
+   - Mock mode uses fake providers for deterministic development/testing.
+   - Real mode uses Faster-Whisper for speech-to-text, MarianMT for translation,
+     and Kokoro for speech synthesis.
+   - Real model weights are cached locally and may be downloaded from configured
+     model hosts on first use.
+
+5. DATABASE AND DEPLOYMENT
+   - PostgreSQL 16 runs in a Docker Compose container with a persistent volume.
+   - The users table stores account email and password hash.
+   - The conversions table stores direction, source text, translated text,
+     timestamp, and a foreign key to its user.
+   - One user has zero or more conversion records; only the newest five are kept.
+   - Show the Vite frontend and FastAPI backend as local host processes, and
+     PostgreSQL as the Docker container. Do not imply that model inference runs
+     in PostgreSQL or that the backend is inside Docker.
+
+Make the main speech path visually prominent. Use solid arrows for request/data
+flow and dashed arrows for optional authentication, mock/real provider choice,
+and first-use model downloads. Group related boxes and use concise labels.
+
+SYSTEM CONTEXT / COMPONENT DIAGRAM
+---------------------------------
+@startuml
+left to right direction
+skinparam componentStyle rectangle
+
+actor "User" as User
+
+rectangle "Browser" {
+  component "VaaniPlus UI\nVite + vanilla TypeScript" as UI
+  component "Microphone and audio playback" as Media
+  component "sessionStorage\nBearer token" as TokenStore
+}
+
+component "Vite dev server\n127.0.0.1:5173\n/api proxy" as Vite
+
+rectangle "FastAPI backend\n127.0.0.1:8000" {
+  component "API routes\n/auth, /translate,\n/speech-to-text,\n/speech-translate,\n/text-to-speech,\n/conversions/history" as Routes
+  component "Authentication\nJWT and password hashing" as Auth
+  component "Translation services\ntext and speech pipeline" as Services
+  component "Provider interfaces\nSTT / Translation / TTS" as Interfaces
+  component "Fake providers\nmock mode" as Fake
+  component "Local model adapters\nFaster-Whisper / MarianMT / Kokoro" as Real
+}
+
+database "PostgreSQL 16\nDocker Compose" as DB
+folder "Local model cache" as Cache
+cloud "Configured model hosts\nfirst-use weight downloads" as Hosts
+
+User --> UI : sign in, translate,\nreview and play
+UI --> Media : record / play
+Media --> UI : recorded audio / events
+UI --> TokenStore : save and restore JWT
+UI --> Vite : HTTP requests under /api
+Vite --> Routes : proxy requests
+Routes --> Auth : login, registration,\ncurrent-user validation
+Auth --> DB : read/write users
+Routes --> Services : validated requests
+Services --> Interfaces : invoke provider contracts
+Interfaces ..> Fake : mock mode
+Interfaces ..> Real : real mode
+Routes --> DB : save completed conversions\nwhen authenticated
+Routes --> DB : read recent history
+Real --> Cache : read/write model weights
+Hosts ..> Cache : download weights on first use
+@enduml
+
+USE-CASE DIAGRAM
+----------------
+@startuml
+left to right direction
+actor "User" as User
+rectangle "VaaniPlus" {
+  usecase "Create account" as Register
+  usecase "Sign in" as Login
+  usecase "Restore session" as Restore
+  usecase "Sign out" as Logout
+  usecase "Select translation direction" as Direction
+  usecase "Translate typed text" as TextTranslation
+  usecase "Record and translate speech" as SpeechTranslation
+  usecase "Generate translated speech" as GenerateSpeech
+  usecase "View transcript and translation" as ViewResult
+  usecase "Play generated speech" as PlayAudio
+  usecase "View five recent conversions" as History
+}
+User --> Register
+User --> Login
+User --> Restore
+User --> Logout
+User --> Direction
+User --> TextTranslation
+User --> SpeechTranslation
+User --> ViewResult
+User --> PlayAudio
+User --> History
+TextTranslation ..> ViewResult : <<include>>
+SpeechTranslation ..> ViewResult : <<include>>
+TextTranslation ..> GenerateSpeech : <<include>>
+SpeechTranslation ..> GenerateSpeech : <<include>>
+@enduml
+
+DOMAIN / CLASS DIAGRAM
+----------------------
+@startuml
+skinparam classAttributeIconSize 0
+
+class User {
+  +id: int
+  +email: str
+  +password_hash: str
+  +created_at: datetime
+}
+
+class Conversion {
+  +id: int
+  +user_id: int
+  +direction: "en-to-hi" | "hi-to-en"
+  +source_text: str
+  +translated_text: str
+  +created_at: datetime
+}
+
+class AuthRequest {
+  +email: str
+  +password: str
+}
+
+class TokenResponse {
+  +access_token: str
+  +token_type: str
+  +user: UserResponse
+}
+
+class UserResponse {
+  +id: int
+  +email: str
+}
+
+interface STTProvider {
+  +transcribe(audio, language): STTResult
+}
+
+class STTResult {
+  +transcript: str
+  +language: str
+  +confidence: float
+}
+
+interface TranslationProvider {
+  +translate(source_text, direction): str | TranslationResult
+}
+
+class TranslationResult {
+  +translated_text: str
+  +source_language: str
+  +target_language: str
+}
+
+interface TTSProvider {
+  +synthesize(text, target_language): TTSAudio
+}
+
+class SpeechTranslationResult {
+  +transcript: str
+  +translated_text: str
+  +source_language: str
+  +target_language: str
+  +direction: str
+  +audio: bytes | Path
+  +content_type: str
+}
+
+User "1" -- "0..5" Conversion : owns recent history\n(user_id foreign key)
+AuthRequest ..> TokenResponse : registration/login
+TokenResponse *-- UserResponse
+STTProvider ..> STTResult : returns
+TranslationProvider ..> TranslationResult : returns
+@enduml
+
+Note: The database can store at most five recent Conversion rows per user.
+The Conversion-to-User foreign key cascades when a user is deleted. Provider
+interfaces are Python protocols; concrete providers are selected by runtime
+configuration. SpeechTranslationResult carries text fields copied from the STT
+and translation results; it does not hold those result objects.
+
+SEQUENCE: TYPED TEXT TRANSLATION
+--------------------------------
+@startuml
+actor User
+participant "Browser UI" as UI
+participant "Vite /api proxy" as Vite
+participant "FastAPI route" as API
+participant "Translation service" as Service
+participant "Translation provider" as Provider
+database "PostgreSQL" as DB
+participant "TTS provider" as TTS
+
+User -> UI : enter text and select direction
+UI -> Vite : POST /api/translate\nJSON + optional bearer token
+Vite -> API : proxy request
+API -> Service : validate and translate
+Service -> Provider : translate(source_text, direction)
+Provider --> Service : translated text
+Service --> API : TranslationResponse
+opt authenticated user
+  API -> DB : save conversion; retain newest five
+end
+API --> Vite : JSON translation response
+Vite --> UI : translated text
+UI -> Vite : POST /api/text-to-speech\ntranslated text + target language
+Vite -> API : proxy request
+API -> TTS : synthesize(text, target_language)
+TTS --> API : generated audio
+API --> Vite : audio file response
+Vite --> UI : audio bytes
+UI --> User : show translation and play audio
+@enduml
+
+SEQUENCE: SPEECH TRANSLATION
+----------------------------
+@startuml
+actor User
+participant "Browser UI" as UI
+participant "Vite /api proxy" as Vite
+participant "FastAPI route" as API
+participant "Speech pipeline service" as Pipeline
+participant "STT provider" as STT
+participant "Translation provider" as Translator
+participant "TTS provider" as TTS
+database "PostgreSQL" as DB
+
+User -> UI : allow microphone and record
+UI -> UI : capture audio with browser MediaRecorder
+User -> UI : stop and submit recording
+UI -> Vite : POST /api/speech-translate\nmultipart audio + direction + optional token
+Vite -> API : proxy request
+API -> API : validate direction and audio upload
+API -> Pipeline : translate_speech(audio, direction)
+Pipeline -> STT : transcribe audio
+STT --> Pipeline : transcript and detected language
+Pipeline -> Pipeline : verify source language matches direction
+Pipeline -> Translator : translate transcript
+Translator --> Pipeline : translated text
+Pipeline -> TTS : synthesize translated text
+TTS --> Pipeline : generated audio
+Pipeline --> API : audio and text metadata
+opt authenticated user
+  API -> DB : save conversion; retain newest five
+end
+API --> Vite : audio body + transcript/translation headers
+Vite --> UI : audio and text metadata
+UI --> User : display transcript, translation, and playback
+@enduml
+
+SEQUENCE: AUTHENTICATION AND HISTORY
+------------------------------------
+@startuml
+actor User
+participant "Browser UI" as UI
+participant "Vite /api proxy" as Vite
+participant "FastAPI auth/history routes" as API
+participant "JWT and password helpers" as Security
+database "PostgreSQL" as DB
+
+User -> UI : submit email and password
+UI -> Vite : POST /api/auth/register or /api/auth/login
+Vite -> API : proxy request
+API -> DB : find or create account
+API -> Security : hash/verify password and sign JWT
+Security --> API : access token
+API --> Vite : token and public user
+Vite --> UI : authentication response
+UI -> UI : store token in sessionStorage
+UI -> Vite : GET /api/conversions/history\nAuthorization: Bearer token
+Vite -> API : proxy request
+API -> Security : validate JWT and resolve user
+API -> DB : select newest five conversions for user
+DB --> API : conversion history
+API --> Vite : history response
+Vite --> UI : render recent history
+@enduml
+
+DEPLOYMENT DIAGRAM
+------------------
+@startuml
+node "User device" {
+  artifact "Web browser" as Browser
+  node "Vite development server\n127.0.0.1:5173" as Frontend {
+    artifact "Static HTML, CSS,\nvanilla TypeScript" as UI
+    component "/api reverse proxy" as Proxy
+  }
+  node "FastAPI / Uvicorn\n127.0.0.1:8000" as Backend {
+    artifact "API routes, services,\nprovider adapters" as App
+    folder "Configured local model cache" as ModelCache
+  }
+}
+
+node "Docker" {
+  database "PostgreSQL 16\nport 5432" as PostgreSQL
+  folder "Persistent Docker volume" as Volume
+}
+
+cloud "Configured model hosts\nfirst-use downloads only" as ModelHosts
+
+Browser --> Frontend : HTTP
+Frontend --> Proxy : /api requests
+Proxy --> Backend : HTTP
+Backend --> PostgreSQL : SQLAlchemy / psycopg
+PostgreSQL --> Volume : persistent data
+Backend --> ModelCache : model access
+ModelHosts ..> ModelCache : model weights
+@enduml
+
+Image-generation notes
+----------------------
+- Prefer a wide 16:9 canvas for the system context/component diagram.
+- Keep each sequence diagram separate so arrows and labels remain readable.
+- Preserve the English/Hindi direction labels and the five-record history rule.
+- Use only the components and relationships described in this report.
+- Do not show credentials, secret keys, or values from backend/.env.
