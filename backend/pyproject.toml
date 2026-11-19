@@ -9,10 +9,14 @@ description = "Local-first English and Hindi speech translation backend"
 requires-python = ">=3.11,<3.12"
 dependencies = [
   "fastapi==0.115.12",
+  "PyJWT==2.10.1",
+  "pwdlib[argon2]==0.2.1",
   "uvicorn[standard]==0.34.2",
   "pydantic==2.11.4",
   "pydantic-settings==2.9.1",
   "python-multipart==0.0.20",
+  "SQLAlchemy==2.0.40",
+  "psycopg[binary]==3.2.6",
 ]
 
 [project.optional-dependencies]

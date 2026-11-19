@@ -8,6 +8,28 @@ The documented application routes are `GET /api/health`,
 `POST /api/speech-translate`, and `POST /api/text-to-speech`. This server is
 intended for local development.
 
+## Authentication
+
+Start the local PostgreSQL container from the repository root with
+`docker compose up -d postgres`. Configure `DATABASE_URL` and a random
+`JWT_SECRET_KEY` in `backend/.env`. The API creates the small `users` table on
+the first authentication request and seeds a demo account if it is missing:
+`proindra@example.com` / `VaaniProindra#2026`. This password is for local
+development only. Configure `DEFAULT_USER_EMAIL` and `DEFAULT_USER_PASSWORD`
+before using this setup outside a local demo.
+
+`POST /api/auth/register` and `POST /api/auth/login` accept JSON credentials:
+
+```json
+{"email": "user@example.com", "password": "at-least-8-characters"}
+```
+
+Both return a bearer token and public user data. Send that token as
+`Authorization: Bearer <token>` to `GET /api/auth/me`. Invalid credentials or
+tokens return `401`; duplicate registration returns `409`. Existing speech
+routes remain available without authentication so the current local demo is
+not broken.
+
 ## Development browser access
 
 The API allows browser requests only from the configured loopback development

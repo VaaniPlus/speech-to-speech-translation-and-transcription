@@ -40,6 +40,12 @@ function getElement<K extends keyof UIElements>(id: K): UIElements[K] {
   return element as UIElements[K];
 }
 
+function getAuthElement<T extends HTMLElement>(id: string): T {
+  const element = document.getElementById(id);
+  if (!element) throw new Error(`Missing required UI element: #${id}`);
+  return element as T;
+}
+
 const directionSelect = getElement("direction");
 const sourceLanguage = getElement("source-language");
 const targetLanguage = getElement("target-language");
@@ -73,6 +79,18 @@ const audioToggleLabel = getElement("audio-toggle-label");
 const audioReplayButton = getElement("audio-replay-button");
 const translatedAudio = getElement("translated-audio");
 const resetButton = getElement("reset-button");
+const authScreen = getAuthElement<HTMLElement>("auth-screen");
+const translationApp = getAuthElement<HTMLElement>("translation-app");
+const authForm = getAuthElement<HTMLFormElement>("auth-form");
+const authEmail = getAuthElement<HTMLInputElement>("auth-email");
+const authPassword = getAuthElement<HTMLInputElement>("auth-password");
+const authSubmit = getAuthElement<HTMLButtonElement>("auth-submit");
+const authMessage = getAuthElement<HTMLElement>("auth-message");
+const loginTab = getAuthElement<HTMLButtonElement>("login-tab");
+const registerTab = getAuthElement<HTMLButtonElement>("register-tab");
+const accountControls = getAuthElement<HTMLElement>("account-controls");
+const accountEmail = getAuthElement<HTMLElement>("account-email");
+const logoutButton = getAuthElement<HTMLButtonElement>("logout-button");
 
 const directions: Record<string, {
   source: string;
@@ -152,6 +170,101 @@ let recordingActive = false;
 let recordingFinalizing = false;
 let requestingMicrophone = false;
 let translatedAudioUrl: string | null = null;
+let authMode: "login" | "register" = "login";
+
+function setAuthenticated(email: string) {
+  authScreen.hidden = true;
+  translationApp.hidden = false;
+  accountControls.hidden = false;
+  accountEmail.textContent = email;
+}
+
+function setAuthMode(mode: "login" | "register") {
+  authMode = mode;
+  const registering = mode === "register";
+  loginTab.setAttribute("aria-pressed", String(!registering));
+  registerTab.setAttribute("aria-pressed", String(registering));
+  authSubmit.textContent = registering ? "Create account" : "Sign in";
+  authPassword.autocomplete = registering ? "new-password" : "current-password";
+  authMessage.textContent = "";
+  authMessage.dataset.state = "";
+}
+
+async function submitAuth(event: SubmitEvent) {
+  event.preventDefault();
+  const email = authEmail.value.trim();
+  const password = authPassword.value;
+  authSubmit.disabled = true;
+  authSubmit.textContent = authMode === "register" ? "Creating account…" : "Signing in…";
+  authMessage.textContent = "";
+  authMessage.dataset.state = "";
+  try {
+    const response = await fetch(getApiUrl(`auth/${authMode}`), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      const detail = data?.detail;
+      const message = typeof detail === "string"
+        ? detail
+        : Array.isArray(detail)
+          ? detail.map((issue: { msg?: string }) => issue.msg).filter(Boolean).join(" ")
+          : response.status === 401
+            ? "Incorrect email or password."
+            : response.status === 409
+              ? "An account with this email already exists."
+              : data?.message || "Authentication could not be completed.";
+      throw new Error(message);
+    }
+    if (typeof data?.access_token !== "string" || typeof data?.user?.email !== "string") {
+      throw new Error("The server returned an invalid authentication response.");
+    }
+    sessionStorage.setItem("vaaniplus-access-token", data.access_token);
+    setAuthenticated(data.user.email);
+  } catch (error) {
+    authMessage.textContent = error instanceof Error
+      ? error.message
+      : "Could not connect to the authentication service.";
+    authMessage.dataset.state = "error";
+  } finally {
+    authSubmit.disabled = false;
+    authSubmit.textContent = authMode === "register" ? "Create account" : "Sign in";
+  }
+}
+
+async function restoreSession() {
+  const token = sessionStorage.getItem("vaaniplus-access-token");
+  if (!token) return;
+  try {
+    const response = await fetch(getApiUrl("auth/me"), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || typeof data?.email !== "string") {
+      sessionStorage.removeItem("vaaniplus-access-token");
+      return;
+    }
+    setAuthenticated(data.email);
+  } catch {
+    authMessage.textContent = "Could not verify your saved session. Please sign in again.";
+    authMessage.dataset.state = "error";
+    sessionStorage.removeItem("vaaniplus-access-token");
+  }
+}
+
+authForm.addEventListener("submit", submitAuth);
+loginTab.addEventListener("click", () => setAuthMode("login"));
+registerTab.addEventListener("click", () => setAuthMode("register"));
+logoutButton.addEventListener("click", () => {
+  sessionStorage.removeItem("vaaniplus-access-token");
+  accountControls.hidden = true;
+  translationApp.hidden = true;
+  authScreen.hidden = false;
+  authPassword.value = "";
+  setAuthMode("login");
+});
 
 function setRecordingStatus(message: string, state = "info") {
   recordingStatus.textContent = message;
@@ -818,14 +931,7 @@ window.addEventListener("pagehide", () => {
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) return;
   const wasCapturing = recordingActive || requestingMicrophone;
-  const wasProcessing = speechProcessing || activeController !== null;
-  cancelTextRequest();
-  cancelSpeechRequest();
   resetRecording();
-  if (wasProcessing) {
-    clearTranslationOutput();
-    setStatus("Processing stopped because this page was hidden. Submit again to retry.", "info");
-  }
   if (wasCapturing) {
     const message = "Recording stopped when this page was hidden. Select Start to record again.";
     setRecordingStatus(message);
@@ -836,3 +942,4 @@ document.addEventListener("visibilitychange", () => {
 updateDirection();
 updateRecordingControls();
 updateAudioControls();
+void restoreSession();

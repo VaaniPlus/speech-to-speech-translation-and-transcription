@@ -42,6 +42,10 @@ microphone capture, typed-text input, result display, and audio playback. The
 FastAPI backend coordinates replaceable Faster-Whisper, MarianMT, and Kokoro
 providers.
 
+The backend also provides small local account authentication backed by
+PostgreSQL in Docker. Speech routes remain available without a token for the
+existing local demo.
+
 [Overview](#scope) · [User guide](frontend/README.md) · [Architecture](#architecture) · [Setup](#getting-started) · [API docs](docs/api.md) · [Final demo](docs/final-demo-script.md) · [Handoff](docs/final-handoff.md)
 
 </div>
@@ -70,7 +74,7 @@ unavailable or fails, use the CPU settings above. See the
 ## Scope
 
 This project intentionally supports English and Hindi only. It does not
-include other languages, multi-party calls, user accounts, cloud
+include other languages, multi-party calls, cloud
 deployment, or voice cloning. Audio and text are intended to stay local;
 do not send them to external services unless the team explicitly documents
 and approves that integration.
@@ -139,7 +143,24 @@ required for API features outside local development. See the full
 
 Start the backend and frontend in two separate PowerShell terminals from the
 repository root. `uv run` prepares the backend environment automatically. On
-the first frontend run, install its dependencies once with `npm ci`.
+the first frontend run, install its dependencies once with `npm ci`. Start
+PostgreSQL first:
+
+```powershell
+docker compose up -d postgres
+```
+
+The Compose service uses the official Docker image tag `postgres:16`.
+
+The local demo account is created automatically the first time an auth endpoint
+is used:
+
+- Email: `proindra@example.com`
+- Password: `VaaniProindra#2026`
+
+These are development-only credentials. Set `DEFAULT_USER_EMAIL` and
+`DEFAULT_USER_PASSWORD` in `backend/.env` before using this setup beyond a
+local demo.
 
 ### Terminal 1 — Backend
 

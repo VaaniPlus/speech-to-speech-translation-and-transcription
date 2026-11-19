@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import FileResponse, Response
 
 from app.core.config import Settings
+from app.api.auth import router as auth_router
 from app.providers.stage1_speech_to_text import LanguageCode, STTProvider
 from app.providers.stage2_text_to_text_translation import TranslationProvider
 from app.providers.stage3_text_to_speech import TTSProvider
@@ -31,6 +32,7 @@ from app.services.stage3_text_to_speech_service import (
 from app.utils.audio import CONTENT_TYPE_SUFFIXES, AudioInputError, read_audio_upload
 
 router = APIRouter()
+router.include_router(auth_router)
 
 
 def get_translation_provider(request: Request) -> TranslationProvider | None:

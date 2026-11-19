@@ -107,7 +107,7 @@ The following are explicitly excluded from this release:
 - translation plus transliteration as a combined feature;
 - live full-duplex or multi-party conversations;
 - meeting, call, or continuous-session recording;
-- accounts, authorization, profile data, or cloud storage;
+- cloud-hosted accounts, profile data, or cloud storage;
 - cloud-hosted inference or deployment;
 - voice cloning or speaker identity preservation;
 - advanced scientific translation-quality benchmarking; and
