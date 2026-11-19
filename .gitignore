@@ -24,7 +24,8 @@ node_modules/
 .vite/
 
 # Downloaded models and generated media
-models/
+/models/
+/backend/models/
 model_cache/
 recordings/
 *.pt

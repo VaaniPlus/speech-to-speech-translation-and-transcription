@@ -34,6 +34,14 @@ type UIElements = {
   "reset-button": HTMLButtonElement;
 };
 
+type ConversionHistoryEntry = {
+  id: number;
+  direction: "en-to-hi" | "hi-to-en";
+  source_text: string;
+  translated_text: string;
+  created_at: string;
+};
+
 function getElement<K extends keyof UIElements>(id: K): UIElements[K] {
   const element = document.getElementById(id);
   if (!element) throw new Error(`Missing required UI element: #${id}`);
@@ -91,6 +99,8 @@ const registerTab = getAuthElement<HTMLButtonElement>("register-tab");
 const accountControls = getAuthElement<HTMLElement>("account-controls");
 const accountEmail = getAuthElement<HTMLElement>("account-email");
 const logoutButton = getAuthElement<HTMLButtonElement>("logout-button");
+const historyStatus = getAuthElement<HTMLParagraphElement>("history-status");
+const historyList = getAuthElement<HTMLOListElement>("history-list");
 
 const directions: Record<string, {
   source: string;
@@ -177,6 +187,7 @@ function setAuthenticated(email: string) {
   translationApp.hidden = false;
   accountControls.hidden = false;
   accountEmail.textContent = email;
+  void loadConversionHistory();
 }
 
 function setAuthMode(mode: "login" | "register") {
@@ -263,6 +274,7 @@ logoutButton.addEventListener("click", () => {
   translationApp.hidden = true;
   authScreen.hidden = false;
   authPassword.value = "";
+  historyList.replaceChildren();
   setAuthMode("login");
 });
 
@@ -591,6 +603,83 @@ function getApiUrl(endpoint = "translate"): string {
   return `/api/${endpoint}`;
 }
 
+function getAuthorizationHeaders(): Record<string, string> {
+  const token = sessionStorage.getItem("vaaniplus-access-token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function isConversionHistoryEntry(value: unknown): value is ConversionHistoryEntry {
+  if (typeof value !== "object" || value === null) return false;
+  const entry = value as Record<string, unknown>;
+  return (
+    typeof entry.id === "number" &&
+    (entry.direction === "en-to-hi" || entry.direction === "hi-to-en") &&
+    typeof entry.source_text === "string" &&
+    typeof entry.translated_text === "string" &&
+    typeof entry.created_at === "string"
+  );
+}
+
+async function loadConversionHistory() {
+  historyList.replaceChildren();
+  historyStatus.dataset.state = "";
+  historyStatus.textContent = "Loading recent conversions…";
+  try {
+    const response = await fetch(getApiUrl("conversions/history"), {
+      headers: getAuthorizationHeaders(),
+    });
+    const data: unknown = await response.json().catch(() => null);
+    if (!response.ok) {
+      const detail = (data as { detail?: unknown } | null)?.detail;
+      if (typeof detail === "string") throw new Error(detail);
+      if (response.status === 404) {
+        throw new Error("History endpoint not found. Restart the backend and try again.");
+      }
+      throw new Error("Conversion history could not be loaded.");
+    }
+    if (!Array.isArray(data) || !data.every(isConversionHistoryEntry)) {
+      throw new Error("The server returned invalid conversion history.");
+    }
+    if (data.length === 0) {
+      historyStatus.textContent = "Your recent conversions will appear here.";
+      return;
+    }
+
+    for (const conversion of data.slice(0, 5)) {
+      const item = document.createElement("li");
+      item.className = "history-item";
+      const heading = document.createElement("div");
+      heading.className = "history-item-heading";
+      const direction = document.createElement("span");
+      direction.textContent = conversion.direction === "en-to-hi"
+        ? "English → Hindi"
+        : "Hindi → English";
+      const timestamp = new Date(conversion.created_at);
+      const date = document.createElement("time");
+      if (!Number.isNaN(timestamp.getTime())) {
+        date.dateTime = conversion.created_at;
+        date.textContent = timestamp.toLocaleString();
+      }
+      heading.append(direction, date);
+
+      const source = document.createElement("p");
+      source.className = "history-source";
+      source.textContent = conversion.source_text;
+      const translation = document.createElement("p");
+      translation.className = "history-translation";
+      translation.textContent = conversion.translated_text;
+      item.append(heading, source, translation);
+      historyList.append(item);
+    }
+    historyStatus.textContent = `Showing ${Math.min(data.length, 5)} most recent conversion${data.length === 1 ? "" : "s"}.`;
+  } catch (error) {
+    historyStatus.textContent = error instanceof Error
+      ? error.message
+      : "Conversion history could not be loaded.";
+    historyStatus.dataset.state = "error";
+  }
+}
+
 function clearTranslationOutput() {
   releaseTranslatedAudio();
   placeholderContent.hidden = false;
@@ -723,6 +812,7 @@ async function translateRecording() {
   try {
     const response = await fetch(getApiUrl("speech-translate"), {
       method: "POST",
+      headers: getAuthorizationHeaders(),
       body: formData,
       signal: controller.signal,
     });
@@ -741,6 +831,7 @@ async function translateRecording() {
     translatedOutput.textContent = translation;
     translatedOutput.lang = direction === "en-to-hi" ? "hi" : "en";
     receivedMetadata = true;
+    void loadConversionHistory();
 
     const contentType = response.headers
       .get("Content-Type")
@@ -815,7 +906,10 @@ async function translateText() {
   try {
     const response = await fetch(getApiUrl(), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthorizationHeaders(),
+      },
       body: JSON.stringify({ direction: directionSelect.value, source_text: source }),
       signal: controller.signal,
     });
@@ -827,6 +921,7 @@ async function translateText() {
       throw new Error("The translation service returned no text.");
     }
 
+    void loadConversionHistory();
     translatedOutput.textContent = data.translated_text;
     translatedOutput.lang = data.target_language === "hi" ? "hi" : "en";
     translateButtonLabel.textContent = "Generating audio…";

@@ -10,6 +10,7 @@
 <img alt="Frontend" src="https://img.shields.io/badge/FRONTEND-Vite%20%2B%20TypeScript-646cff?style=for-the-badge&logo=vite&logoColor=white">
 <img alt="Backend" src="https://img.shields.io/badge/BACKEND-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white">
 <img alt="Server" src="https://img.shields.io/badge/SERVER-Uvicorn-2f855a?style=for-the-badge">
+<img alt="Database" src="https://img.shields.io/badge/DATABASE-PostgreSQL%2016%20%28Docker%29-4169E1?style=for-the-badge&logo=postgresql&logoColor=white">
 </p>
 <p>
 <img alt="Speech to text" src="https://img.shields.io/badge/SPEECH_TO_TEXT-Faster--Whisper-2563EB?style=for-the-badge">
@@ -165,7 +166,7 @@ local demo.
 ### Terminal 1 — Backend
 
 ```powershell
-uv run --project backend --directory backend uvicorn app.main:app --host 127.0.0.1 --port 8000
+uv run --project backend --directory backend uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 ### Terminal 2 — Frontend

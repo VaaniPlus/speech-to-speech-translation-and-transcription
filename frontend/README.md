@@ -26,6 +26,8 @@ The first screen is account sign-in; use **Create account** for a new local
 account. PostgreSQL must be running with `docker compose up -d postgres` from
 the repository root. Successful sign-in opens the translation workspace for
 the current browser tab, and **Sign out** returns to the auth screen.
+The dashboard lists the signed-in user's five most recent typed or speech
+conversions, saved in the local PostgreSQL database.
 Microphone capture starts only
 after selecting Start and granting browser permission. Select Stop to finish;
 the captured audio is kept in browser memory and microphone tracks are

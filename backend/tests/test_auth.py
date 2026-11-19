@@ -77,3 +77,57 @@ def test_default_proindra_account_can_sign_in(tmp_path) -> None:
 
     assert response.status_code == 200
     assert response.json()["user"]["email"] == "proindra@example.com"
+
+
+def test_conversion_history_is_user_scoped_and_keeps_only_five(tmp_path) -> None:
+    with make_client(tmp_path) as client:
+        first_user = client.post(
+            "/api/auth/register",
+            json={"email": "first@example.com", "password": "password123"},
+        ).json()
+        first_headers = {
+            "Authorization": f"Bearer {first_user['access_token']}",
+        }
+
+        for index in range(6):
+            conversion = client.post(
+                "/api/translate",
+                headers=first_headers,
+                json={
+                    "direction": "en-to-hi",
+                    "source_text": f"message {index}",
+                },
+            )
+            assert conversion.status_code == 200
+
+        first_history = client.get(
+            "/api/conversions/history",
+            headers=first_headers,
+        )
+        second_user = client.post(
+            "/api/auth/register",
+            json={"email": "second@example.com", "password": "password123"},
+        ).json()
+        second_history = client.get(
+            "/api/conversions/history",
+            headers={"Authorization": f"Bearer {second_user['access_token']}"},
+        )
+        anonymous_translation = client.post(
+            "/api/translate",
+            json={"direction": "en-to-hi", "source_text": "anonymous"},
+        )
+        anonymous_history = client.get("/api/conversions/history")
+
+    assert first_history.status_code == 200
+    assert [item["source_text"] for item in first_history.json()] == [
+        "message 5",
+        "message 4",
+        "message 3",
+        "message 2",
+        "message 1",
+    ]
+    assert len(first_history.json()) == 5
+    assert second_history.status_code == 200
+    assert second_history.json() == []
+    assert anonymous_translation.status_code == 200
+    assert anonymous_history.status_code == 401

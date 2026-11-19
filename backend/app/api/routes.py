@@ -5,9 +5,14 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import FileResponse, Response
+from sqlalchemy.orm import Session
 
+from app.api.auth import get_optional_authenticated_user
+from app.api.conversions import router as conversions_router
 from app.core.config import Settings
 from app.api.auth import router as auth_router
+from app.db import get_optional_db
+from app.models.user import User
 from app.providers.stage1_speech_to_text import LanguageCode, STTProvider
 from app.providers.stage2_text_to_text_translation import TranslationProvider
 from app.providers.stage3_text_to_speech import TTSProvider
@@ -29,10 +34,12 @@ from app.services.stage3_text_to_speech_service import (
     SpeechSynthesisResult,
     synthesize_text,
 )
+from app.services.conversion_history import save_conversion
 from app.utils.audio import CONTENT_TYPE_SUFFIXES, AudioInputError, read_audio_upload
 
 router = APIRouter()
 router.include_router(auth_router)
+router.include_router(conversions_router)
 
 
 def get_translation_provider(request: Request) -> TranslationProvider | None:
@@ -235,6 +242,8 @@ async def speech_translate(
     ],
     tts_provider: Annotated[TTSProvider | None, Depends(get_tts_provider)],
     settings: Annotated[Settings, Depends(get_app_settings)],
+    user: Annotated[User | None, Depends(get_optional_authenticated_user)],
+    db: Annotated[Session | None, Depends(get_optional_db)],
 ) -> Response:
     """Return synthesized audio with transcript and translation in headers."""
     if direction == "en-to-hi":
@@ -261,6 +270,14 @@ async def speech_translate(
         tts_provider,
         settings.provider_timeout_seconds,
     )
+    if user is not None and db is not None:
+        save_conversion(
+            db,
+            user_id=user.id,
+            direction=result.direction,
+            source_text=result.transcript,
+            translated_text=result.translated_text,
+        )
     return _speech_translation_file_response(result)
 
 
@@ -337,13 +354,24 @@ async def translate(
         Depends(get_translation_provider),
     ],
     settings: Annotated[Settings, Depends(get_app_settings)],
+    user: Annotated[User | None, Depends(get_optional_authenticated_user)],
+    db: Annotated[Session | None, Depends(get_optional_db)],
 ) -> TranslationResponse:
     """Translate non-empty English or Hindi text in the selected direction."""
-    return await translate_text(
+    result = await translate_text(
         payload,
         provider,
         settings.provider_timeout_seconds,
     )
+    if user is not None and db is not None:
+        save_conversion(
+            db,
+            user_id=user.id,
+            direction=result.direction,
+            source_text=result.source_text,
+            translated_text=result.translated_text,
+        )
+    return result
 
 
 @router.post(

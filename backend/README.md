@@ -4,7 +4,7 @@ The backend is a standalone Python 3.11 uv project. Install uv, then start the
 API from this directory:
 
 ```powershell
-uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
+uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 Authentication uses PostgreSQL. From the repository root, start the local

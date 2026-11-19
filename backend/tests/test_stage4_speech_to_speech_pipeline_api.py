@@ -201,6 +201,44 @@ def test_speech_translate_returns_audio_file_and_encoded_metadata(
     assert translated not in caplog.text
 
 
+def test_authenticated_speech_translation_is_saved_to_user_history(tmp_path) -> None:
+    events: list[tuple[object, ...]] = []
+    settings = Settings(
+        _env_file=None,
+        provider_mode="mock",
+        database_url=f"sqlite:///{tmp_path / 'speech-history.db'}",
+        jwt_secret_key="test-secret-key-with-at-least-32-chars",
+        seed_default_user=False,
+    )
+    app = create_app(
+        settings,
+        stt_provider=FakeSTTProvider(events),
+        translation_provider=FakeTranslationProvider(events),
+        tts_provider=FakeTTSProvider(events),
+    )
+
+    with TestClient(app) as client:
+        registration = client.post(
+            "/api/auth/register",
+            json={"email": "speech@example.com", "password": "password123"},
+        ).json()
+        headers = {"Authorization": f"Bearer {registration['access_token']}"}
+        response = client.post(
+            "/api/speech-translate",
+            headers=headers,
+            files={"file": ("sample.wav", wav_bytes(), "audio/wav")},
+            data={"direction": "en-to-hi"},
+        )
+        history = client.get("/api/conversions/history", headers=headers)
+
+    assert response.status_code == 200
+    assert history.status_code == 200
+    assert len(history.json()) == 1
+    assert history.json()[0]["direction"] == "en-to-hi"
+    assert history.json()[0]["source_text"] == "Hello there."
+    assert history.json()[0]["translated_text"] == "नमस्कार"
+
+
 def test_speech_translate_documents_multipart_binary_response_and_errors() -> None:
     app = create_app(Settings(_env_file=None))
 

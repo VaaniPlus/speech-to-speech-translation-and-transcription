@@ -15,7 +15,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
-from app.db import get_db
+from app.db import get_db, get_optional_db
 from app.models.user import User
 from app.schemas.auth import AuthRequest, TokenResponse, UserResponse
 
@@ -24,6 +24,54 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 def _user_response(user: User) -> UserResponse:
     return UserResponse(id=user.id, email=user.email)
+
+
+def _resolve_user(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None,
+    db: Session | None,
+) -> User:
+    if credentials is None or db is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication is required.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    user_id = get_token_subject(credentials, request.app.state.settings.jwt_secret_key)
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user
+
+
+def get_optional_authenticated_user(
+    request: Request,
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None,
+        Depends(bearer_scheme),
+    ],
+    db: Annotated[Session | None, Depends(get_optional_db)],
+) -> User | None:
+    """Resolve the bearer-token account without requiring auth for public routes."""
+    if credentials is None:
+        return None
+    return _resolve_user(request, credentials, db)
+
+
+def get_authenticated_user(
+    request: Request,
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None,
+        Depends(bearer_scheme),
+    ],
+    db: Annotated[Session | None, Depends(get_optional_db)],
+) -> User:
+    """Require and resolve the bearer-token account."""
+    return _resolve_user(request, credentials, db)
 
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
@@ -68,17 +116,7 @@ def login(payload: AuthRequest, request: Request, db: Annotated[Session, Depends
 
 @router.get("/me", response_model=UserResponse)
 def current_user(
-    request: Request,
-    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
-    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(get_authenticated_user)],
 ) -> UserResponse:
     """Return the account represented by the bearer token."""
-    user_id = get_token_subject(credentials, request.app.state.settings.jwt_secret_key)
-    user = db.get(User, user_id)
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication token.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
     return _user_response(user)

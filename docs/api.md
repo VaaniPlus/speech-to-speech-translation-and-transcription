@@ -5,8 +5,9 @@ OpenAPI schema at `/openapi.json`.
 
 The documented application routes are `GET /api/health`,
 `POST /api/translate`, `POST /api/speech-to-text`,
-`POST /api/speech-translate`, and `POST /api/text-to-speech`. This server is
-intended for local development.
+`POST /api/speech-translate`, `POST /api/text-to-speech`,
+`GET /api/conversions/history`, and the authentication routes. This server
+is intended for local development.
 
 ## Authentication
 
@@ -29,6 +30,17 @@ Both return a bearer token and public user data. Send that token as
 tokens return `401`; duplicate registration returns `409`. Existing speech
 routes remain available without authentication so the current local demo is
 not broken.
+
+## Recent conversions
+
+When a valid bearer token is supplied to `POST /api/translate` or
+`POST /api/speech-translate`, the completed source text, translation, and
+direction are saved to the signed-in user's PostgreSQL history. Older items
+are removed so each account retains at most five conversions. Requests without
+a token continue working but do not save history.
+
+`GET /api/conversions/history` requires a bearer token and returns that
+account's conversions, newest first. Other accounts' entries are not included.
 
 ## Development browser access
 
