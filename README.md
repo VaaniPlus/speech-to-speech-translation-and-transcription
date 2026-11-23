@@ -49,7 +49,7 @@ existing local demo. Signed-in users can review their five latest typed-text
 or speech conversions in the dashboard; each account's history is stored
 locally in PostgreSQL.
 
-[Overview](#scope) · [User guide](frontend/README.md) · [Architecture](#architecture) · [Setup](#getting-started) · [API docs](docs/api.md) · [Final demo](docs/final-demo-script.md) · [Handoff](docs/final-handoff.md)
+[Overview](#scope) · [User guide](frontend/README.md) · [Architecture](#architecture) · [Setup](#getting-started) · [Project PDF](Speech-to-Speech_Translation_and_Transcription.pdf)
 
 </div>
 
@@ -72,7 +72,7 @@ CUDA/cuDNN libraries must be compatible with the installed CTranslate2 version.
 (`DEVICE=cpu`, `STT_COMPUTE_TYPE=int8`).
 To opt into GPU inference, configure a compatible CUDA setup. If CUDA is
 unavailable or fails, use the CPU settings above. See the
-[Windows setup guide](docs/windows-setup.md) for configuration and diagnostics.
+[Windows setup](#getting-started) for local CPU configuration and diagnostics.
 
 ## Scope
 
@@ -93,7 +93,7 @@ and approves that integration.
 │   │   ├── models/       # User and conversion-history tables
 │   │   ├── providers/    # Faster-Whisper, MarianMT, Kokoro
 │   │   ├── schemas/      # Request and response models
-│   │   ├── services/     # Speech, translation, synthesis, and history
+│   │   ├── services/     # Conversion history
 │   │   ├── utils/
 │   │   └── main.py
 │   ├── tests/
@@ -106,14 +106,24 @@ and approves that integration.
 │   ├── package.json
 │   └── vite.config.ts
 ├── data/                 # Evaluation datasets
-├── docs/                 # Architecture, API, setup, and demo guides
+├── docs/
+│   └── architecture.md   # Architecture and data-flow guide
 ├── docker-compose.yml    # Local PostgreSQL 16 service
+├── PROJECT_PLAN.txt      # Software project plan
+├── SOFTWARE_TEST_REPORT.txt
+├── SRS.txt               # Software requirements specification
+├── TEST_PLAN.txt
+├── UML_DESIGN.txt
+├── Speech-to-Speech_Translation_and_Transcription.pdf
 └── README.md
 ```
 
 See the [backend setup](backend/README.md), [frontend setup](frontend/README.md),
-[requirements](docs/requirements.md), and
-[architecture guide](docs/architecture.md) for details.
+and [architecture guide](docs/architecture.md) for details.
+
+The complete project submission, including scope, requirements, design,
+implementation, testing, and demonstration material, is available in
+[Speech-to-Speech_Translation_and_Transcription.pdf](Speech-to-Speech_Translation_and_Transcription.pdf).
 
 ## Architecture
 
@@ -173,8 +183,7 @@ local demo.
 
 After signing in, successful typed and speech translations are saved to that
 account's history. Only the newest five conversions are kept. To inspect the
-API contract, open <http://127.0.0.1:8000/docs> and see
-[API documentation](docs/api.md).
+API contract, open <http://127.0.0.1:8000/docs>.
 
 ### Terminal 1 — Backend
 
@@ -193,7 +202,7 @@ npm run dev
 
 Open <http://127.0.0.1:5173>. The frontend communicates with the API through
 Vite's `/api` proxy. For optional real-model configuration and troubleshooting,
-see the [Windows setup guide](docs/windows-setup.md).
+see the backend environment configuration in `backend/.env.example`.
 
 ## GitHub Pages
 
@@ -216,9 +225,7 @@ uv sync --project backend --extra ml
 ```
 
 The example selects real providers and **MarianMT** for typed English ↔ Hindi
-translation. Its model downloads on the first translation request. See the
-[translation model guide](docs/translation-model-selection.md) for model and
-Windows notes.
+translation. Its model downloads on the first translation request.
 
 ### Run tests
 
@@ -226,9 +233,7 @@ Windows notes.
 uv run --project backend pytest
 ```
 
-The default suite uses fake providers and does not download model weights. See
-[testing](docs/testing.md) for the focused speech integration test and
-[optional real-model smoke test](docs/model-smoke-test.md).
+The default suite uses fake providers and does not download model weights.
 
 ### Latest local validation (2026-11-19)
 
@@ -243,8 +248,7 @@ The default suite uses fake providers and does not download model weights. See
 - Mock providers remain workflow placeholders. Physical microphone capture and
   real STT inference were not validated in this run.
 
-This smoke check is not a translation-quality benchmark. See the
-[demo checklist](docs/demo-checklist.md) for workflow validation.
+This smoke check is not a translation-quality benchmark.
 
 ## Project workflow
 

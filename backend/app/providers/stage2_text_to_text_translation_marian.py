@@ -50,7 +50,11 @@ class MarianTranslationProvider:
 
             cache = str(self.cache_dir) if self.cache_dir else None
             tokenizer = MarianTokenizer.from_pretrained(model_id, cache_dir=cache)
-            model = MarianMTModel.from_pretrained(model_id, cache_dir=cache)
+            model = MarianMTModel.from_pretrained(
+                model_id,
+                cache_dir=cache,
+                low_cpu_mem_usage=False,
+            )
             model.eval()
         except ImportError as error:
             logger.exception("MarianMT import error: %s", error)
